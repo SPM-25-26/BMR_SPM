@@ -1,12 +1,31 @@
-import { Mail } from 'lucide-react';
 import logoImage from 'figma:asset/958defa264c22f47e7a42e2e88ba5be34b61d176.png';
+import { loginUser } from '../api/authApi';
+import { useEffect, useState } from 'react';
+//import HomePage from './components/HomePage';
+
 
 interface WelcomePageProps {
   onNavigateToLogin: () => void;
   onNavigateToRegister: () => void;
 }
 
+interface Forecast {
+    testresult: string;
+}
+
 export default function WelcomePage({ onNavigateToLogin, onNavigateToRegister }: WelcomePageProps) {
+    const [forecast, setForecast] = useState<Forecast>();
+    
+    useEffect(() => {
+        loginUser('test@test.it', 'testtest')
+            .then(setForecast)
+            .catch(console.error);
+    }, []);
+
+    const contents = forecast === undefined
+        ? <p><em>Loading... Please refresh once the ASP.NET backend has started. See <a href="https://aka.ms/jspsintegrationreact">https://aka.ms/jspsintegrationreact</a> for more details.</em></p>
+        : <p>backend message: {forecast.testresult}</p>;
+
   const handleGoogleLogin = () => {
     // Mock Google login
     alert('Google login would be implemented here');
@@ -39,7 +58,7 @@ export default function WelcomePage({ onNavigateToLogin, onNavigateToRegister }:
             <p className="text-[#004080] text-[15px] sm:text-[16px] md:text-[18px] font-['Titillium_Web:Regular',sans-serif] text-center mb-5 sm:mb-6 md:mb-8">
               Registrati e scopri le migliori esperienze turistiche
             </p>
-
+                      {contents}
             {/* Register Button */}
             <button
               onClick={onNavigateToRegister}
@@ -116,5 +135,5 @@ export default function WelcomePage({ onNavigateToLogin, onNavigateToRegister }:
         </p>
       </div>
     </div>
-  );
+    );    
 }
