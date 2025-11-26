@@ -30,8 +30,41 @@ export default function RegisterPage({ onRegister, onNavigateToLogin, onNavigate
   const [errorState, setErrorState] = useState<ErrorState>({ type: null, title: '', message: '' });
   const [showErrorModal, setShowErrorModal] = useState(false);
 
+  // Validation functions
+  const validateEmail = (emailValue: string): string[] => {
+    const errors: string[] = [];
+    const allowedCharsRegex = /^[a-zA-Z0-9\-._@+]*$/;
 
-  const isFormValid = name.trim() !== '' && email.trim() !== '' && password.trim() !== '' && acceptTerms;
+    if (emailValue.length > 0 && !allowedCharsRegex.test(emailValue)) {
+      errors.push("L'email contiene caratteri non validi. Sono consentiti solo: a-z, A-Z, 0-9, -, ., _, @, +");
+    }
+
+    return errors;
+  };
+
+  const validatePassword = (passwordValue: string): string[] => {
+    const errors: string[] = [];
+
+    if (passwordValue.length > 0 && passwordValue.length < 6) {
+      errors.push("La password deve contenere almeno 6 caratteri");
+    }
+
+    if (passwordValue.length > 0 && !/\d/.test(passwordValue)) {
+      errors.push("La password deve contenere almeno un numero");
+    }
+
+    if (passwordValue.length > 0 && !/[A-Z]/.test(passwordValue)) {
+      errors.push("La password deve contenere almeno una lettera maiuscola ('A'-'Z')");
+    }
+
+    if (passwordValue.length > 0 && !/[^a-zA-Z0-9]/.test(passwordValue)) {
+      errors.push("La password deve contenere almeno un carattere speciale: !@#$%^&*()-_=+");
+    }
+
+    return errors;
+  };
+
+  const isFormValid = name.trim() !== '' && email.trim() !== '' && password.trim() !== '' && acceptTerms && emailError.length === 0 && passwordError.length === 0;
 
   const setServerError = () => {
     setErrorState({
@@ -133,19 +166,19 @@ export default function RegisterPage({ onRegister, onNavigateToLogin, onNavigate
   };
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEmail(e.target.value);
-    // Clear error when user starts typing
-    if (emailError) {
-      setEmailError([]);
-    }
+    const newEmail = e.target.value;
+    setEmail(newEmail);
+
+    const validationErrors = validateEmail(newEmail);
+    setEmailError(validationErrors);
   };
 
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setPassword(e.target.value);
-    // Clear error when user starts typing
-    if (passwordError) {
-      setPasswordError([]);
-    }
+    const newPassword = e.target.value;
+    setPassword(newPassword);
+
+    const validationErrors = validatePassword(newPassword);
+    setPasswordError(validationErrors);
   };
 
   const closeErrorModal = () => {
@@ -328,7 +361,7 @@ export default function RegisterPage({ onRegister, onNavigateToLogin, onNavigate
               {/* Register Button */}
               <button
                 type="submit"
-                disabled={isLoading}
+                disabled={!isFormValid || isLoading}
                 className="w-full bg-[#0066cc] hover:bg-[#004d99] text-white py-3 sm:py-3.5 md:py-4 px-6 rounded-lg text-[17px] sm:text-[18px] md:text-[20px] font-['Titillium_Web:SemiBold',sans-serif] transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed disabled:hover:bg-gray-400"
               >
                 {isLoading ? 'Registrazione...' : 'Registrati'}
