@@ -37,7 +37,7 @@ if (!fs.existsSync(certFilePath) || !fs.existsSync(keyFilePath)) {
 }
 
 const target = env.ASPNETCORE_HTTPS_PORT ? `https://localhost:${env.ASPNETCORE_HTTPS_PORT}` :
-    env.ASPNETCORE_URLS ? env.ASPNETCORE_URLS.split(';')[0] : 'https://localhost:7039';
+    env.ASPNETCORE_URLS ? env.ASPNETCORE_URLS.split(';')[0] : 'https://localhost:7156';
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -136,7 +136,7 @@ export default defineConfig({
     },
     server: {
         proxy: {
-            '^/api/auth': {
+            '^/api/Eppoi': {
                 target,
                 secure: false
             }

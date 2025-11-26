@@ -4,11 +4,15 @@ import { ImageWithFallback } from './figma/ImageWithFallback';
 import logoImage from 'figma:asset/958defa264c22f47e7a42e2e88ba5be34b61d176.png';
 
 interface HomePageProps {
-  userName: string;
+  user: {
+    name: string;
+    userName: string;
+    email: string;
+  };
   onLogout: () => void;
 }
 
-export default function HomePage({ userName, onLogout }: HomePageProps) {
+export default function HomePage({ user, onLogout }: HomePageProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedInterests, setSelectedInterests] = useState<string[]>(['Monumenti', 'Musei']);
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -106,7 +110,7 @@ export default function HomePage({ userName, onLogout }: HomePageProps) {
           {/* Welcome Section */}
           <div className="mb-5 sm:mb-6 md:mb-8">
             <h2 className="text-[#004d99] text-[22px] sm:text-[24px] md:text-[32px] font-['Titillium_Web:Bold',sans-serif] mb-1 sm:mb-2">
-              Ciao {userName}!
+              Ciao {user.name}!
             </h2>
             <p className="text-[#004080] text-[15px] sm:text-[16px] md:text-[18px] font-['Titillium_Web:Regular',sans-serif]">
               Dove vuoi andare oggi?
