@@ -1,10 +1,14 @@
 import { useState, useRef } from 'react';
-import { UserPlus, ArrowLeft, Loader2, AlertCircle, Eye, EyeOff, XCircle, X } from 'lucide-react';
+import { UserPlus, ArrowLeft } from 'lucide-react';
 import logoImage from 'figma:asset/958defa264c22f47e7a42e2e88ba5be34b61d176.png';
 import { registerUser, ApiErrorWithResponse } from '../api/authApi';
+import PasswordInput from './ui/PasswordInput';
+import LoadingSpinner from './ui/LoadingSpinner';
+import ValidationErrorsList from './ui/ValidationErrorsList';
+import ErrorModal from './ui/ErrorModal';
 
 interface RegisterPageProps {
-  onRegister: (name: string) => void;
+  onRegister: (userData: { name: string; userName: string; email: string }) => void;
   onNavigateToLogin: () => void;
   onNavigateToWelcome: () => void;
 }
@@ -22,7 +26,6 @@ export default function RegisterPage({ onRegister, onNavigateToLogin, onNavigate
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [emailError, setEmailError] = useState<string[]>([]);
@@ -198,16 +201,7 @@ export default function RegisterPage({ onRegister, onNavigateToLogin, onNavigate
   return (
     <div className="flex flex-col min-h-screen bg-[#004d99] relative">
       {/* Loading Overlay */}
-      {isLoading && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-2xl p-8 flex flex-col items-center">
-            <Loader2 className="w-16 h-16 text-[#0066cc] animate-spin mb-4" />
-            <p className="text-[#004d99] text-[18px] sm:text-[20px] font-['Titillium_Web:SemiBold',sans-serif]">
-              Registrazione in corso...
-            </p>
-          </div>
-        </div>
-      )}
+      {isLoading && <LoadingSpinner message="Registrazione in corso..." />}
 
       {/* Header */}
       <div className="bg-[#0066cc] px-3 sm:px-4 py-4 sm:py-5 md:py-6 shadow-md">
@@ -255,7 +249,8 @@ export default function RegisterPage({ onRegister, onNavigateToLogin, onNavigate
                   id="name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-300 rounded-lg focus:border-[#0066cc] focus:outline-none text-[15px] sm:text-[16px] font-['Titillium_Web:Regular',sans-serif]"
+                  disabled={isLoading}
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-300 rounded-lg focus:border-[#0066cc] focus:outline-none text-[15px] sm:text-[16px] font-['Titillium_Web:Regular',sans-serif] disabled:bg-gray-100 disabled:cursor-not-allowed"
                   placeholder="inserisci il tuo nome"
                   required
                 />
@@ -274,63 +269,24 @@ export default function RegisterPage({ onRegister, onNavigateToLogin, onNavigate
                   id="email"
                   value={email}
                   onChange={handleEmailChange}
-                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-300 rounded-lg focus:border-[#0066cc] focus:outline-none text-[15px] sm:text-[16px] font-['Titillium_Web:Regular',sans-serif]"
+                  disabled={isLoading}
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-300 rounded-lg focus:border-[#0066cc] focus:outline-none text-[15px] sm:text-[16px] font-['Titillium_Web:Regular',sans-serif] disabled:bg-gray-100 disabled:cursor-not-allowed"
                   placeholder="inserisci la tua email"
                   required
                 />
-                {emailError.length > 0 && (
-                  <div className="mt-1 space-y-1">
-                    {emailError.map((error, index) => (
-                      <p key={index} className="text-red-500 text-[12px] sm:text-[13px] md:text-[14px] font-['Titillium_Web:Regular',sans-serif] flex items-center gap-1">
-                        <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                        <span>{error}</span>
-                      </p>
-                    ))}
-                  </div>
-                )}
+                <ValidationErrorsList errors={emailError} />
               </div>
 
               {/* Password Field */}
               <div>
-                <label 
-                  htmlFor="password" 
-                  className="block text-[#004080] text-[15px] sm:text-[16px] md:text-[18px] font-['Titillium_Web:SemiBold',sans-serif] mb-2"
-                >
-                  Password
-                </label>
-                <div className="relative">
-                <input
-                  type={showPassword ? 'text' : 'password'}
+                <PasswordInput
                   id="password"
                   value={password}
                   onChange={handlePasswordChange}
-                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 pr-10 border-2 border-gray-300 rounded-lg focus:border-[#0066cc] focus:outline-none text-[15px] sm:text-[16px] font-['Titillium_Web:Regular',sans-serif]"
+                  disabled={isLoading}
                   placeholder="crea una password"
-                  required
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-[#0066cc] transition-colors"
-                    aria-label={showPassword ? 'Nascondi password' : 'Mostra password'}
-                  >
-                    {showPassword ? (
-                      <EyeOff className="w-5 h-5" />
-                    ) : (
-                      <Eye className="w-5 h-5" />
-                    )}
-                  </button>
-                </div>
-                {passwordError.length > 0 && (
-                  <div className="mt-1 space-y-1">
-                    {passwordError.map((error, index) => (
-                      <p key={index} className="text-red-500 text-[12px] sm:text-[13px] md:text-[14px] font-['Titillium_Web:Regular',sans-serif] flex items-center gap-1">
-                        <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                        <span>{error}</span>
-                      </p>
-                    ))}
-                  </div>
-                )}
+                />
+                <ValidationErrorsList errors={passwordError} />
               </div>
 
               {/* Terms and Conditions */}
@@ -340,7 +296,8 @@ export default function RegisterPage({ onRegister, onNavigateToLogin, onNavigate
                   id="terms"
                   checked={acceptTerms}
                   onChange={(e) => setAcceptTerms(e.target.checked)}
-                  className="w-4 h-4 text-[#0066cc] border-gray-300 rounded focus:ring-[#0066cc] mt-1"
+                  disabled={isLoading}
+                  className="w-4 h-4 text-[#0066cc] border-gray-300 rounded focus:ring-[#0066cc] mt-1 disabled:cursor-not-allowed"
                   required
                 />
                 <label 
@@ -383,7 +340,8 @@ export default function RegisterPage({ onRegister, onNavigateToLogin, onNavigate
               <button
                 type="button"
                 onClick={onNavigateToLogin}
-                className="w-full bg-white border-2 border-[#0066cc] text-[#0066cc] hover:bg-[#f0f7ff] py-3 sm:py-3.5 md:py-4 px-6 rounded-lg text-[17px] sm:text-[18px] md:text-[20px] font-['Titillium_Web:SemiBold',sans-serif] transition-colors"
+                disabled={isLoading}
+                className="w-full bg-white border-2 border-[#0066cc] text-[#0066cc] hover:bg-[#f0f7ff] py-3 sm:py-3.5 md:py-4 px-6 rounded-lg text-[17px] sm:text-[18px] md:text-[20px] font-['Titillium_Web:SemiBold',sans-serif] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 LOGIN
               </button>
@@ -400,51 +358,17 @@ export default function RegisterPage({ onRegister, onNavigateToLogin, onNavigate
       </div>
 
       {/* Error Modal */}
-      {showErrorModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
-          <div className="bg-white rounded-lg shadow-2xl p-6 sm:p-8 max-w-md w-full relative">
-            {/* Close button */}
-            <button
-              onClick={closeErrorModal}
-              className="absolute top-3 right-3 text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            {/* Error Icon */}
-            <div className="flex items-center justify-center mb-4">
-              <div className={`${errorState.type === 'duplicate-user' ? 'bg-yellow-100' : 'bg-red-100'} p-4 rounded-full`}>
-                <XCircle className={`w-12 h-12 sm:w-14 sm:h-14 ${errorState.type === 'duplicate-user' ? 'text-yellow-500' : 'text-red-500'}`} />
-              </div>
-            </div>
-
-            {/* Error Title */}
-            <h3 className="text-[#004d99] text-[20px] sm:text-[24px] font-['Titillium_Web:Bold',sans-serif] text-center mb-3">
-              {errorState.title}
-            </h3>
-
-            {/* Error Message */}
-            <p className="text-gray-600 text-[14px] sm:text-[16px] font-['Titillium_Web:Regular',sans-serif] text-center mb-6">
-              {errorState.message}
-            </p>
-
-            {/* Action Buttons */}
-            <div className="flex flex-col gap-3">
-              <button
-                onClick={handleRetry}
-                className="w-full bg-[#0066cc] hover:bg-[#004d99] text-white py-3 px-6 rounded-lg text-[16px] sm:text-[18px] font-['Titillium_Web:SemiBold',sans-serif] transition-colors"
-              >
-                {errorState.type === 'duplicate-user' ? 'Accedi' : 'Riprova'}
-              </button>
-              <button
-                onClick={closeErrorModal}
-                className="w-full bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-50 py-3 px-6 rounded-lg text-[16px] sm:text-[18px] font-['Titillium_Web:SemiBold',sans-serif] transition-colors"
-              >
-                Annulla
-              </button>
-            </div>
-          </div>
-        </div>
+      {errorState.type !== null && (
+        <ErrorModal
+          isOpen={showErrorModal}
+          title={errorState.title}
+          message={errorState.message}
+          onClose={closeErrorModal}
+          onRetry={handleRetry}
+          retryLabel={errorState.type === 'duplicate-user' ? 'Accedi' : 'Riprova'}
+          cancelLabel="Annulla"
+          isWarning={errorState.type === 'duplicate-user'}
+        />
       )}
     </div>
   );

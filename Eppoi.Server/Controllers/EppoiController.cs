@@ -39,7 +39,7 @@ namespace Eppoi.Server.Controllers
 
             if (string.IsNullOrEmpty(result)) return BadRequest(ResponseFactory.WithError(result));
             
-            return Ok(ResponseFactory.WithSuccess("User Logged in Successfully. \n" + result));
+            return Ok(ResponseFactory.WithSuccess(result));
         }
 
         //[HttpGet("home/{email}"), Authorize]
