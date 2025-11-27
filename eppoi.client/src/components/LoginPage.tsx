@@ -1,37 +1,121 @@
-import { useState } from 'react';
-import { Mail, Lock, ArrowLeft } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { Mail, ArrowLeft } from 'lucide-react';
 import logoImage from 'figma:asset/958defa264c22f47e7a42e2e88ba5be34b61d176.png';
+import { loginUser, ApiErrorWithResponse } from '../api/authApi';
+import PasswordInput from './ui/PasswordInput';
+import LoadingSpinner from './ui/LoadingSpinner';
+import ValidationErrorsList from './ui/ValidationErrorsList';
+import ErrorModal from './ui/ErrorModal';
+import { decodeJwt } from './ui/utils';
 
 interface LoginPageProps {
-  onLogin: (name: string) => void;
+  onLogin: (userData: { name: string; userName: string; email: string }) => void;
   onNavigateToRegister: () => void;
   onNavigateToWelcome: () => void;
 }
 
+interface ErrorState {
+  title: string;
+  message: string;
+}
+
 export default function LoginPage({ onLogin, onNavigateToRegister, onNavigateToWelcome }: LoginPageProps) {
+  const formRef = useRef<HTMLFormElement>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [passwordError, setPasswordError] = useState<string[]>([]);
+  const [errorState, setErrorState] = useState<ErrorState | null>(null);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  
+  const closeErrorModal = () => {
+    setShowErrorModal(false);
+    setErrorState(null);
+  };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleRetry = () => {
+    closeErrorModal();
+    triggerSubmit();
+  };
+
+  const triggerSubmit = () => {
+    formRef.current?.requestSubmit();
+  };
+
+  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setEmail(e.target.value);
+    // Cancella l'errore di credenziali quando l'utente modifica l'email
+    setPasswordError([]);
+  };
+
+  const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPassword(e.target.value);
+    // Cancella l'errore di credenziali quando l'utente modifica la password
+    setPasswordError([]);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (email && password) {
-      // Mock login - extract name from email
-      const name = email.split('@')[0];
-      const capitalizedName = name.charAt(0).toUpperCase() + name.slice(1);
-      onLogin(capitalizedName);
+      setIsLoading(true);
+      setPasswordError([]);
+      
+      try {
+        const response = await loginUser(email, password);
+
+        if (response.success) {
+          const jwtPayload = decodeJwt(response.result);
+          
+          if (jwtPayload) {
+            localStorage.setItem('authToken', response.result);
+            
+            onLogin({
+              name: jwtPayload.Name,
+              userName: jwtPayload.UserName,
+              email: jwtPayload.Email
+            });
+          } else {
+            setErrorState({
+              title: 'Errore di Autenticazione',
+              message: 'Si è verificato un errore durante l\'elaborazione del token di autenticazione. Riprova tra qualche minuto.'
+            });
+            setShowErrorModal(true);
+          }
+        } else {
+          // Wrong credentials
+          setPasswordError(['Login fallito. Controllare email e/o password']);
+        }
+      } catch (err) {
+        if (err instanceof ApiErrorWithResponse && err.response && !err.response.success) {
+          // Wrong credentials
+          setPasswordError(['Login fallito. Controllare email e/o password']);
+        } else {
+          // A network or other kind of error
+          setErrorState({
+            title: 'Errore Server',
+            message: 'Si è verificato un errore durante l\'accesso. Il server non è attualmente disponibile. Riprova tra qualche minuto.'
+          });
+          setShowErrorModal(true);
+        }
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-[#004d99]">
+    <div className="flex flex-col min-h-screen bg-[#004d99] relative">
+      {/* Loading Overlay */}
+      {isLoading && <LoadingSpinner message="Accesso in corso..." />}
+
       {/* Header */}
       <div className="bg-[#0066cc] px-3 sm:px-4 py-4 sm:py-5 md:py-6 shadow-md">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <img src={logoImage} alt="Eppoi" className="h-5 sm:h-6 md:h-7 ml-1 sm:ml-2" />
           <button
             onClick={onNavigateToWelcome}
-            className="flex items-center gap-1.5 sm:gap-2 bg-white text-[#0066cc] hover:bg-[#bfdfff] px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-lg transition-colors"
+            disabled={isLoading}
+            className="flex items-center gap-1.5 sm:gap-2 bg-white text-[#0066cc] hover:bg-[#bfdfff] px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <ArrowLeft className="w-4 h-4 sm:w-4 sm:h-4 md:w-5 md:h-5" />
             <span className="text-[13px] sm:text-[14px] md:text-[16px] font-['Titillium_Web:SemiBold',sans-serif]">Indietro</span>
@@ -53,7 +137,7 @@ export default function LoginPage({ onLogin, onNavigateToRegister, onNavigateToW
               LOGIN
             </h2>
 
-            <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5 md:space-y-6">
+            <form ref={formRef} onSubmit={handleSubmit} className="space-y-4 sm:space-y-5 md:space-y-6">
               {/* Email Field */}
               <div>
                 <label 
@@ -66,8 +150,9 @@ export default function LoginPage({ onLogin, onNavigateToRegister, onNavigateToW
                   type="email"
                   id="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-300 rounded-lg focus:border-[#0066cc] focus:outline-none text-[15px] sm:text-[16px] font-['Titillium_Web:Regular',sans-serif]"
+                  onChange={handleEmailChange}
+                  disabled={isLoading}
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-300 rounded-lg focus:border-[#0066cc] focus:outline-none text-[15px] sm:text-[16px] font-['Titillium_Web:Regular',sans-serif] disabled:bg-gray-100 disabled:cursor-not-allowed"
                   placeholder="inserisci la tua email"
                   required
                 />
@@ -75,53 +160,31 @@ export default function LoginPage({ onLogin, onNavigateToRegister, onNavigateToW
 
               {/* Password Field */}
               <div>
-                <label 
-                  htmlFor="password" 
-                  className="block text-[#004080] text-[15px] sm:text-[16px] md:text-[18px] font-['Titillium_Web:SemiBold',sans-serif] mb-2"
-                >
-                  Password
-                </label>
-                <input
-                  type="password"
+                <PasswordInput
                   id="password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-300 rounded-lg focus:border-[#0066cc] focus:outline-none text-[15px] sm:text-[16px] font-['Titillium_Web:Regular',sans-serif]"
+                  onChange={handlePasswordChange}
+                  disabled={isLoading}
                   placeholder="inserisci la tua password"
-                  required
                 />
-              </div>
-
-              {/* Remember Me */}
-              <div className="flex items-center">
-                <input
-                  type="checkbox"
-                  id="remember"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 text-[#0066cc] border-gray-300 rounded focus:ring-[#0066cc]"
-                />
-                <label 
-                  htmlFor="remember" 
-                  className="ml-2 text-[#004080] text-[13px] sm:text-[14px] md:text-[16px] font-['Titillium_Web:Regular',sans-serif]"
-                >
-                  Ricordami
-                </label>
+                <ValidationErrorsList errors={passwordError} />
               </div>
 
               {/* Login Button */}
               <button
                 type="submit"
-                className="w-full bg-[#0066cc] hover:bg-[#004d99] text-white py-3 sm:py-3.5 md:py-4 px-6 rounded-lg text-[17px] sm:text-[18px] md:text-[20px] font-['Titillium_Web:SemiBold',sans-serif] transition-colors"
+                disabled={isLoading || !email || !password}
+                className="w-full bg-[#0066cc] hover:bg-[#004d99] text-white py-3 sm:py-3.5 md:py-4 px-6 rounded-lg text-[17px] sm:text-[18px] md:text-[20px] font-['Titillium_Web:SemiBold',sans-serif] transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed disabled:hover:bg-gray-400"
               >
-                Accedi
+                {isLoading ? 'Accesso...' : 'Accedi'}
               </button>
 
               {/* Forgot Password */}
               <div className="text-center">
                 <button
                   type="button"
-                  className="text-[#0066cc] text-[13px] sm:text-[14px] font-['Titillium_Web:Regular',sans-serif] hover:underline"
+                  disabled={isLoading}
+                  className="text-[#0066cc] text-[13px] sm:text-[14px] font-['Titillium_Web:Regular',sans-serif] hover:underline disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Password dimenticata?
                 </button>
@@ -143,7 +206,8 @@ export default function LoginPage({ onLogin, onNavigateToRegister, onNavigateToW
               <button
                 type="button"
                 onClick={onNavigateToRegister}
-                className="w-full bg-white border-2 border-[#0066cc] text-[#0066cc] hover:bg-[#f0f7ff] py-3 sm:py-3.5 md:py-4 px-6 rounded-lg text-[17px] sm:text-[18px] md:text-[20px] font-['Titillium_Web:SemiBold',sans-serif] transition-colors"
+                disabled={isLoading}
+                className="w-full bg-white border-2 border-[#0066cc] text-[#0066cc] hover:bg-[#f0f7ff] py-3 sm:py-3.5 md:py-4 px-6 rounded-lg text-[17px] sm:text-[18px] md:text-[20px] font-['Titillium_Web:SemiBold',sans-serif] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 REGISTRATI
               </button>
@@ -158,6 +222,19 @@ export default function LoginPage({ onLogin, onNavigateToRegister, onNavigateToW
           © 2025 Eppoi - Powered by Italian Design System
         </p>
       </div>
+
+      {/* Error Modal */}
+      {errorState && (
+        <ErrorModal
+          isOpen={showErrorModal}
+          title={errorState.title}
+          message={errorState.message}
+          onClose={closeErrorModal}
+          onRetry={handleRetry}
+          retryLabel="Riprova"
+          cancelLabel="Annulla"
+        />
+      )}
     </div>
   );
 }

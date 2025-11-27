@@ -184,6 +184,12 @@
   }
 }
 
+/* Hides Edge/Chrome native butto for password inputs */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-webkit-reveal {
+    display: none;
+}
+
 html {
   font-size: var(--font-size);
 }
