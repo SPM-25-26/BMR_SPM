@@ -46,6 +46,8 @@ export default function App() {
     };
 
     const handleLogout = () => {
+        localStorage.removeItem('authenticatedUser');
+        localStorage.removeItem('authToken');
         setUser(null);
         setCurrentPage('welcome');
     };
