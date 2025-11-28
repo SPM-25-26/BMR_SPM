@@ -365,3 +365,4 @@ FodyWeavers.xsd
 # Other editors
 .idea
 *.iml
+/eppoi.client/.env.development

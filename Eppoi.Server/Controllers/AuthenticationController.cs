@@ -58,10 +58,11 @@ namespace Eppoi.Server.Controllers
 
             if (string.IsNullOrEmpty(result)) return BadRequest(ResponseFactory.WithError("Login Failed."));
 
+            if (result.Equals("ErrPw")) return BadRequest(ResponseFactory.WithError("Incorrect Password."));
             if (result.Equals("Confirm"))
             {
                 var code = await _authenticationService.SendVerificationEmail(login.UserOrEmail);
-                return BadRequest(ResponseFactory.WithSuccess(code));
+                return BadRequest(ResponseFactory.WithError(code));
             }
 
             return Ok(ResponseFactory.WithSuccess(result));

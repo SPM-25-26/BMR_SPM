@@ -16,7 +16,7 @@ namespace eppoi.Server.Services
 
         public void SendMail(Email request)
         {
-            var client = new SmtpClient(_options.Client, _options.Port)
+            var client = new SmtpClient(_options.Host, _options.Port)
             {
                 Credentials = new NetworkCredential(_options.User, _options.Password),
                 EnableSsl = true

@@ -48,10 +48,11 @@ namespace eppoi.Server.Services
 
             if (user == null) return "";
 
+            var isPasswordValid = await _userManager.CheckPasswordAsync(user, request.Password);
+            if (!isPasswordValid) return "ErrPw";
+
             if (!await _userManager.IsEmailConfirmedAsync(user)) return "Confirm";
-
-            var isPasswordValid = user != null && await _userManager.CheckPasswordAsync(user, request.Password);
-
+            
             var result = _tokenService.CreateToken(isPasswordValid, user);
             return result;
         }
