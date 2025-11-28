@@ -1,24 +1,90 @@
+import { useGoogleLogin } from '@react-oauth/google';
 import logoImage from 'figma:asset/958defa264c22f47e7a42e2e88ba5be34b61d176.png';
 import { loginUser } from '../api/authApi';
 import { useEffect, useState } from 'react';
-//import HomePage from './components/HomePage';
-
+import axios from 'axios';
+import { X, Copy, Check } from 'lucide-react';
 
 interface WelcomePageProps {
   onNavigateToLogin: () => void;
   onNavigateToRegister: () => void;
 }
 
+interface GoogleUserInfo {
+  id: string;
+  email: string;
+  name: string;
+  given_name?: string;
+  family_name?: string;
+  picture?: string;
+  access_token: string;
+}
+
 export default function WelcomePage({ onNavigateToLogin, onNavigateToRegister }: WelcomePageProps) {
-    
-  const handleGoogleLogin = () => {
-    // Mock Google login
-    alert('Google login would be implemented here');
-  };
+  const [showDebugPopup, setShowDebugPopup] = useState(false);
+  const [debugUserInfo, setDebugUserInfo] = useState<GoogleUserInfo | null>(null);
+  const [copiedToClipboard, setCopiedToClipboard] = useState(false);
+
+  const handleGoogleLogin = useGoogleLogin({
+    onSuccess: async (tokenResponse) => {
+      try {
+        console.log('>>google logged in');
+        
+        // Chiama l'API di Google per ottenere i dati dell'utente usando axios
+        const response = await axios.get<GoogleUserInfo>(
+          'https://www.googleapis.com/oauth2/v2/userinfo',
+          {
+            headers: {
+              Authorization: `Bearer ${tokenResponse.access_token}`,
+            },
+          }
+        );
+
+        const userInfo = response.data;
+        userInfo.access_token = tokenResponse.access_token;
+        console.log('User info:', userInfo);
+        
+        // Mostra il popup debug
+        setDebugUserInfo(userInfo);
+        setShowDebugPopup(true);
+        
+        // userInfo has:
+        // - id: user UID
+        // - email
+        // - name: complete name
+        // - given_name: name
+        // - family_name: surname
+        // - picture: profile picture URL                
+        
+      } catch (error) {
+        if (axios.isAxiosError(error)) {
+          console.error('Errore nella richiesta axios:', error.message);
+          console.error('Status:', error.response?.status);
+          console.error('Dati errore:', error.response?.data);
+        } else {
+          console.error('Errore sconosciuto:', error);
+        }
+      }
+    },
+    onError: (errorResponse) => {
+      console.error('>>google NOT LOGGED IN');
+      console.log(errorResponse);
+    }
+  });
 
   const handleFacebookLogin = () => {
     // Mock Facebook login
     alert('Facebook login would be implemented here');
+  };
+
+  const handleCopyJson = () => {
+    if (debugUserInfo) {
+      const jsonString = JSON.stringify(debugUserInfo, null, 2);
+      navigator.clipboard.writeText(jsonString).then(() => {
+        setCopiedToClipboard(true);
+        setTimeout(() => setCopiedToClipboard(false), 2000);
+      });
+    }
   };
 
   return (
@@ -112,6 +178,62 @@ export default function WelcomePage({ onNavigateToLogin, onNavigateToRegister }:
           </div>
         </div>
       </div>
+
+      {/* Debug Popup Modal */}
+      {showDebugPopup && debugUserInfo && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4 md:p-6">
+          <div className="bg-white rounded-lg shadow-2xl w-full sm:max-w-md max-h-[90vh] flex flex-col">
+            {/* Modal Header */}
+            <div className="bg-[#0066cc] px-4 sm:px-6 py-3 sm:py-4 rounded-t-lg flex items-center justify-between">
+              <h3 className="text-white text-[18px] sm:text-[20px] md:text-[22px] font-['Titillium_Web:Bold',sans-serif]">
+                Debug - User Info
+              </h3>
+              <button
+                onClick={() => setShowDebugPopup(false)}
+                className="text-white hover:text-[#bfdfff] transition-colors"
+              >
+                <X className="w-5 h-5 sm:w-6 sm:h-6" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+              <p className="text-[#004080] text-[13px] sm:text-[14px] font-['Titillium_Web:Regular',sans-serif] mb-3">
+                Copia il JSON sottostante per condividerlo con il backend:
+              </p>
+              <pre className="bg-[#f5f5f5] border-2 border-[#bfdfff] rounded-lg p-3 sm:p-4 text-[12px] sm:text-[13px] font-mono overflow-x-auto text-[#004080]">
+                {JSON.stringify(debugUserInfo, null, 2)}
+              </pre>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="border-t p-3 sm:p-4 md:p-4 flex gap-2 sm:gap-3">
+              <button
+                onClick={handleCopyJson}
+                className="flex-1 flex items-center justify-center gap-2 bg-[#0066cc] hover:bg-[#004d99] text-white py-2.5 sm:py-3 px-4 rounded-lg text-[14px] sm:text-[15px] font-['Titillium_Web:SemiBold',sans-serif] transition-colors"
+              >
+                {copiedToClipboard ? (
+                  <>
+                    <Check className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <span>Copiato!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <span>Copia JSON</span>
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => setShowDebugPopup(false)}
+                className="flex-1 bg-white border-2 border-[#0066cc] text-[#0066cc] hover:bg-[#f0f7ff] py-2.5 sm:py-3 px-4 rounded-lg text-[14px] sm:text-[15px] font-['Titillium_Web:SemiBold',sans-serif] transition-colors"
+              >
+                Chiudi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <div className="bg-[#004080] px-3 sm:px-4 py-3 sm:py-4 text-center">

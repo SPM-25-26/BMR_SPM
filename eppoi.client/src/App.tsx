@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 import WelcomePage from './components/WelcomePage';
 import LoginPage from './components/LoginPage';
 import RegisterPage from './components/RegisterPage';
@@ -11,6 +12,7 @@ interface User {
 }
 
 const STORAGE_KEY = 'authenticatedUser';
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 export default function App() {
     const [currentPage, setCurrentPage] = useState<'welcome' | 'login' | 'register' | 'home'>('welcome');
@@ -64,32 +66,30 @@ export default function App() {
         setCurrentPage('welcome');
     };
 
-    if (!user) {
-        if (currentPage === 'login') {
-            return (
-                <LoginPage
-                    onLogin={handleLogin}
-                    onNavigateToRegister={handleNavigateToRegister}
-                    onNavigateToWelcome={handleNavigateToWelcome}
-                />
-            );
-        }
-        if (currentPage === 'register') {
-            return (
-                <RegisterPage
-                    onRegister={handleLogin}
-                    onNavigateToLogin={handleNavigateToLogin}
-                    onNavigateToWelcome={handleNavigateToWelcome}
-                />
-            );
-        }
-        return (
-            <WelcomePage
-                onNavigateToLogin={handleNavigateToLogin}
-                onNavigateToRegister={handleNavigateToRegister}
-            />
-        );
-    }
-
-    return <HomePage user={user} onLogout={handleLogout} />;
+    return (
+        <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+            {!user ? (
+                currentPage === 'login' ? (
+                    <LoginPage
+                        onLogin={handleLogin}
+                        onNavigateToRegister={handleNavigateToRegister}
+                        onNavigateToWelcome={handleNavigateToWelcome}
+                    />
+                ) : currentPage === 'register' ? (
+                    <RegisterPage
+                        onRegister={handleLogin}
+                        onNavigateToLogin={handleNavigateToLogin}
+                        onNavigateToWelcome={handleNavigateToWelcome}
+                    />
+                ) : (
+                    <WelcomePage
+                        onNavigateToLogin={handleNavigateToLogin}
+                        onNavigateToRegister={handleNavigateToRegister}
+                    />
+                )
+            ) : (
+                <HomePage user={user} onLogout={handleLogout} />
+            )}
+        </GoogleOAuthProvider>
+    );
 }
