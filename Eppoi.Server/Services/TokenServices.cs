@@ -20,7 +20,6 @@ namespace Eppoi.Server.Services
                 List<Claim> claims =
                 [
                     new Claim("Name", user.Name),
-                    new Claim("Email", user.Email),
                     new Claim("UserName", user.UserName),
                 ];
                 var token = GetJwtSecurityToken(claims);

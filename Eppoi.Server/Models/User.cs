@@ -9,7 +9,6 @@ namespace Eppoi.Server.Models
         [MaxLength(50)]
         public required string Name { get; set; }
 
-        [Column(TypeName = "datetime")]
         public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
 
 

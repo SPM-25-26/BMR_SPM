@@ -1,9 +1,12 @@
 using eppoi.Server.Models.Factories;
+using eppoi.Server.Options;
 using eppoi.Server.Services;
 using Eppoi.Server.Data;
 using Eppoi.Server.Models;
 using Eppoi.Server.Options;
 using Eppoi.Server.Services;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Identity;
@@ -16,7 +19,7 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+
 builder.Services.AddControllersWithViews();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -27,7 +30,7 @@ builder.Services.AddSwaggerGen(c =>
         Title = "Eppoi",
         Version = "v1"
     });
-    // definizione della sicurezza
+
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme()
     {
         Name = "Authorization",
@@ -37,7 +40,22 @@ builder.Services.AddSwaggerGen(c =>
         In = ParameterLocation.Header,
         Description = "JWT Authorization header using the Bearer scheme. \r\n\r\n Enter 'Bearer' [space] and then your token in the text input below.\r\n\r\nExample: \"Bearer 1safsfsdfdfd\""
     });
-    // Per tutte le api.
+
+    c.AddSecurityDefinition("Cookie", new OpenApiSecurityScheme()
+    {
+        Name = "Cookie",
+        Type = SecuritySchemeType.OAuth2,
+        Flows = new()
+        {
+            AuthorizationCode = new()
+            {
+                AuthorizationUrl = new(GoogleDefaults.AuthorizationEndpoint),
+                TokenUrl = new(GoogleDefaults.TokenEndpoint)
+            }
+        },
+        Description = "Cookie based authentication"
+    });
+
     c.AddSecurityRequirement(new OpenApiSecurityRequirement()
                 {
                     {
@@ -52,18 +70,37 @@ builder.Services.AddSwaggerGen(c =>
                         Array.Empty<string>()
                     }
                 });
-});
+
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement()
+                {
+                    {
+                        new OpenApiSecurityScheme()
+                        {
+                            Reference = new OpenApiReference()
+                            {
+                                Type = ReferenceType.SecurityScheme,
+                                Id = "Cookie"
+                            }
+                        },
+                        Array.Empty<string>()
+                    }
+                });
+}
+);
 
 builder.Services.AddAuthorization();
 builder.Services.AddDbContext<ApplicationDBContext>(options =>
 {
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));
+    if (builder.Configuration["ConnectionString:Default"] is null) 
+        throw new InvalidOperationException("DB Connection String 'Default' is not configured.");
+    options.UseSqlServer(builder.Configuration["ConnectionString:Default"]);
 });
 
-// Developer exception page for EF migrations
+
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-builder.Services.AddIdentityCore<User>(options =>
+builder.Services
+    .AddIdentityCore<User>(options =>
 {
     options.SignIn.RequireConfirmedAccount = true;
 
@@ -77,21 +114,34 @@ builder.Services.AddIdentityCore<User>(options =>
 
     options.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+";
     options.User.RequireUniqueEmail = true;
-}).AddEntityFrameworkStores<ApplicationDBContext>();
+})
+    .AddEntityFrameworkStores<ApplicationDBContext>()
+    .AddDefaultTokenProviders();
 
-var jwtAuthOpt = new TokenOption();
-builder.Configuration.GetSection("JwtAuthentication")
-    .Bind(jwtAuthOpt);
-
-builder.Services.AddAuthentication(options =>
+builder.Services
+    .AddAuthentication(options =>
 {
-    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
+})
+    .AddCookie()
+    .AddGoogle(options =>
+{
+    options.ClientId = builder.Configuration["Authentication:Google:ClientId"] 
+        ?? throw new InvalidOperationException("Google ClientId is not configured.");
+    
+    options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] 
+        ?? throw new InvalidOperationException("Google Secret is not configured.");
+
+    options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
 })
     .AddJwtBearer(options =>
     {
-        string key = jwtAuthOpt.Key;
+        string key = builder.Configuration["Authentication:Jwt:Key"] 
+            ?? throw new InvalidOperationException("Jwt Key is not configured.");
+        if (builder.Configuration["Authentication:Jwt:Issuer"] is null) throw new InvalidOperationException("Jwt Issuer is not configured.");
+
         var securityKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key));
         options.TokenValidationParameters = new TokenValidationParameters()
         {
@@ -99,20 +149,25 @@ builder.Services.AddAuthentication(options =>
             ValidateLifetime = true, 
             ValidateAudience = false,
             ValidateIssuerSigningKey = true,
-            ValidIssuer = jwtAuthOpt.Issuer,
+            ValidIssuer = builder.Configuration["Authentication:Jwt:Issuer"],
             IssuerSigningKey = securityKey
         };
     });
-builder.Services.Configure<TokenOption>(builder.Configuration.GetSection("JwtAuthentication"));
+
+builder.Services.Configure<TokenOption>(builder.Configuration.GetSection("Authentication:Jwt"));
+builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection("Authentication:SmtpSandbox"));
+builder.Services.AddScoped<SmtpService>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<AuthenticationService>();
+
+builder.Services.AddRazorPages();
 
 var app = builder.Build();
 
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
-// Configure middleware pipeline
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -123,6 +178,7 @@ app.UseHttpsRedirection();
 app.UseRouting();
 
 app.UseAuthorization();
+app.UseAuthentication();
 
 app.MapControllers();
 
