@@ -5,8 +5,6 @@ using Eppoi.Server.Data;
 using Eppoi.Server.Models;
 using Eppoi.Server.Options;
 using Eppoi.Server.Services;
-using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Identity;
@@ -17,8 +15,8 @@ using Microsoft.OpenApi.Models;
 using System.Net;
 using System.Text;
 
-var builder = WebApplication.CreateBuilder(args);
 
+var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
 builder.Services.AddEndpointsApiExplorer();
@@ -41,21 +39,6 @@ builder.Services.AddSwaggerGen(c =>
         Description = "JWT Authorization header using the Bearer scheme. \r\n\r\n Enter 'Bearer' [space] and then your token in the text input below.\r\n\r\nExample: \"Bearer 1safsfsdfdfd\""
     });
 
-    c.AddSecurityDefinition("Cookie", new OpenApiSecurityScheme()
-    {
-        Name = "Cookie",
-        Type = SecuritySchemeType.OAuth2,
-        Flows = new()
-        {
-            AuthorizationCode = new()
-            {
-                AuthorizationUrl = new(GoogleDefaults.AuthorizationEndpoint),
-                TokenUrl = new(GoogleDefaults.TokenEndpoint)
-            }
-        },
-        Description = "Cookie based authentication"
-    });
-
     c.AddSecurityRequirement(new OpenApiSecurityRequirement()
                 {
                     {
@@ -65,21 +48,6 @@ builder.Services.AddSwaggerGen(c =>
                             {
                                 Type = ReferenceType.SecurityScheme,
                                 Id = "Bearer"
-                            }
-                        },
-                        Array.Empty<string>()
-                    }
-                });
-
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement()
-                {
-                    {
-                        new OpenApiSecurityScheme()
-                        {
-                            Reference = new OpenApiReference()
-                            {
-                                Type = ReferenceType.SecurityScheme,
-                                Id = "Cookie"
                             }
                         },
                         Array.Empty<string>()
@@ -95,9 +63,8 @@ builder.Services.AddDbContext<ApplicationDBContext>(options =>
         throw new InvalidOperationException("DB Connection String 'Default' is not configured.");
     options.UseSqlServer(builder.Configuration["ConnectionString:Default"]);
 });
-
-
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
+
 
 builder.Services
     .AddIdentityCore<User>(options =>
@@ -121,20 +88,9 @@ builder.Services
 builder.Services
     .AddAuthentication(options =>
 {
-    options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = GoogleDefaults.AuthenticationScheme;
-})
-    .AddCookie()
-    .AddGoogle(options =>
-{
-    options.ClientId = builder.Configuration["Authentication:Google:ClientId"] 
-        ?? throw new InvalidOperationException("Google ClientId is not configured.");
-    
-    options.ClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] 
-        ?? throw new InvalidOperationException("Google Secret is not configured.");
-
-    options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 })
     .AddJwtBearer(options =>
     {
@@ -160,9 +116,9 @@ builder.Services.AddScoped<SmtpService>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<AuthenticationService>();
 
-builder.Services.AddRazorPages();
 
 var app = builder.Build();
+
 
 app.UseDefaultFiles();
 app.UseStaticFiles();

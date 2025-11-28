@@ -11,6 +11,8 @@ namespace Eppoi.Server.Models
 
         public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
 
+        public string? GoogleId { get; set; } = null;
+
 
     }
 }

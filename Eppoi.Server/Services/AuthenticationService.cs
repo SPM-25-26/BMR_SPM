@@ -95,33 +95,40 @@ namespace eppoi.Server.Services
             return result;
         }
 
-        public async Task<IdentityResult?> GoogleLogin(ClaimsPrincipal claim)
+        public async Task<string> GoogleLogin(GoogleInfoDto request)
         {
-            if (claim == null) return null;
+            if (request == null) return "Request Error";
 
-            var email = claim.FindFirstValue(ClaimTypes.Email);
-            if (email == null) return null;
-
+            var email = request.email;
             var user = await _userManager.FindByEmailAsync(email);
-            if (user == null) 
-            { 
-                var User = new User
+
+            if (user == null)
+            {
+                user = new User
                 {
-                    UserName = email,
+                    UserName = email.Split('@')[0],
+                    GoogleId = request.id,
                     Email = email,
-                    Name = claim.FindFirstValue(ClaimTypes.Name) ?? String.Empty,
+                    Name = request.name,
                     CreatedDate = DateTime.UtcNow,
                     EmailConfirmed = true
                 };
 
-                var result = await _userManager.CreateAsync(User);
-                return result;
+                await _userManager.CreateAsync(user);
             }
 
-            var info = new UserLoginInfo("Google", claim.FindFirstValue(ClaimTypes.Email) ?? String.Empty, "Google");
-            var loginResult = await _userManager.AddLoginAsync(user, info);
+            else
+            {
+                if (user.GoogleId == null)
+                {
+                    user.GoogleId = request.id;
+                    user.EmailConfirmed = true;
+                    await _userManager.UpdateAsync(user);
+                }
+            }
 
-            return loginResult;
-        }
+            var result = _tokenService.CreateToken(true, user);
+            return result;
+        } 
     }
 }

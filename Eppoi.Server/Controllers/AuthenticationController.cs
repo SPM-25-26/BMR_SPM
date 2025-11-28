@@ -43,6 +43,13 @@ namespace Eppoi.Server.Controllers
             }));
         }
 
+        [HttpPost("GoogleLogin")]
+        public async Task<ActionResult> GoogleLogin(GoogleInfoDto login)
+        {
+            var result = await _authenticationService.GoogleLogin(login);
+            if (String.IsNullOrEmpty(result)) return BadRequest(ResponseFactory.WithError("Google Login Failed."));
+            return Ok(ResponseFactory.WithSuccess(result));
+        }
 
         [HttpPost("Login")]
         public async Task<ActionResult> Login(Login login)
@@ -86,6 +93,8 @@ namespace Eppoi.Server.Controllers
             if (!result.Succeeded) return BadRequest(ResponseFactory.WithError(result));
             return Ok(ResponseFactory.WithSuccess("Password Reset Successfully."));
         }
+
+
 
     }
 }
