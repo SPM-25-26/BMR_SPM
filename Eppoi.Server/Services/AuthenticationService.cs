@@ -57,12 +57,16 @@ namespace eppoi.Server.Services
             return result;
         }
 
-        public async Task<IdentityResult> ConfirmEmail(string email, string token)
+        public async Task<string> ConfirmEmail(string email, string token)
         {
             var user = await _userManager.FindByEmailAsync(email);
-            if (user == null) return IdentityResult.Failed();
+            if (user == null) return "Email";
+
             var result = await _userManager.ConfirmEmailAsync(user, token);
-            return result;
+            if (!result.Succeeded) return "Token";
+
+            token = _tokenService.CreateToken(true, user);
+            return token;
         }
 
 
@@ -78,17 +82,23 @@ namespace eppoi.Server.Services
             if (user == null) return "";
 
             var result = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+
+            Email emailDto = EmailFactory.Confirmation(user, result);
+            _smtpService.SendMail(emailDto);
+
             return result + "\n" + user.Name;
         }
 
         public async Task<string> SendPasswordResetEmail(string email)
         {
             var user = await _userManager.FindByEmailAsync(email);
+
             if (user == null) return "";
             var token = await _userManager.GeneratePasswordResetTokenAsync(user);
 
             Email emailDto = EmailFactory.PasswordReset(user, token);
             _smtpService.SendMail(emailDto);
+
             return token;
         }
         public async Task<IdentityResult> ResetPassword(PasswordResetDto request)

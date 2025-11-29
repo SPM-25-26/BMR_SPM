@@ -73,8 +73,11 @@ namespace Eppoi.Server.Controllers
         public async Task<ActionResult> ConfirmEmail(ConfirmEmailDto confirmEmailDto)
         {
             var result = await _authenticationService.ConfirmEmail(confirmEmailDto.Email, confirmEmailDto.Token);
-            if (!result.Succeeded) return BadRequest(ResponseFactory.WithError(result));
-            return Ok(ResponseFactory.WithSuccess("Email Confirmed Successfully."));
+
+            if (result.Equals("Email")) return BadRequest(ResponseFactory.WithError("Email Not Found."));
+            if (result.Equals("Token")) return BadRequest(ResponseFactory.WithError("Invalid Token."));
+
+            return Ok(ResponseFactory.WithSuccess(result));
         }
 
 

@@ -27,6 +27,7 @@ namespace eppoi.Server.Models.Factories
         {
             string body = LoadEmbeddedTemplate("eppoi.Server.EmailTemplates.Confirmation.html")
                 .Replace("{{Name}}", user.Name)
+                .Replace("{{UserId}}", Uri.EscapeDataString(user.Id))
                 .Replace("{{Token}}", token);
 
             Email email = new()
