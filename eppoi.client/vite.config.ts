@@ -134,9 +134,9 @@ export default defineConfig({
             '@radix-ui/react-accordion@1.2.3': '@radix-ui/react-accordion',
         }
     },
-    server: {
+  server: {
         proxy: {
-            '^/api/Eppoi': {
+            '^/api/Authentication': {
                 target,
                 secure: false
             }

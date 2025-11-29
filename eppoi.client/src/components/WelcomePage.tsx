@@ -1,11 +1,13 @@
-import { useGoogleLogin } from '@react-oauth/google';
-import logoImage from 'figma:asset/958defa264c22f47e7a42e2e88ba5be34b61d176.png';
-import { loginUser } from '../api/authApi';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import axios from 'axios';
-import { X, Copy, Check } from 'lucide-react';
+import { useGoogleLogin, type NonOAuthError } from '@react-oauth/google';
+import logoImage from 'figma:asset/958defa264c22f47e7a42e2e88ba5be34b61d176.png';
+import { loginGoogle } from '../api/authApi';
+import ErrorModal from './ui/ErrorModal';
+import { decodeJwt } from './ui/utils';
 
 interface WelcomePageProps {
+  onLogin: (userData: { name: string; userName: string; email: string }) => void;
   onNavigateToLogin: () => void;
   onNavigateToRegister: () => void;
 }
@@ -20,17 +22,45 @@ interface GoogleUserInfo {
   access_token: string;
 }
 
-export default function WelcomePage({ onNavigateToLogin, onNavigateToRegister }: WelcomePageProps) {
-  const [showDebugPopup, setShowDebugPopup] = useState(false);
-  const [debugUserInfo, setDebugUserInfo] = useState<GoogleUserInfo | null>(null);
-  const [copiedToClipboard, setCopiedToClipboard] = useState(false);
+interface ErrorState {
+  title: string;
+  message: string;
+}
+
+export default function WelcomePage({ onLogin, onNavigateToLogin, onNavigateToRegister }: WelcomePageProps) {
+  const [errorState, setErrorState] = useState<ErrorState | null>(null);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+
+  const closeErrorModal = () => {
+    setShowErrorModal(false);
+    setErrorState(null);
+  };
+
+  const getNonAuthErrorMessage = (nonOAuthError: NonOAuthError): ErrorState => {
+    const errorType = nonOAuthError.type || 'unknown';
+    
+    const errorMessages: { [key: string]: ErrorState } = {
+      popup_failed_to_open: {
+        title: 'Errore di Apertura',
+        message: 'Impossibile aprire la finestra di accesso a Google. Verifica che i popup non siano bloccati nel browser.'
+      },
+      popup_closed: {
+        title: 'Accesso Annullato',
+        message: 'La finestra di accesso a Google è stata chiusa. Se desideri accedere, riprova cliccando su "Continua con Google".'
+      },
+      unknown: {
+        title: 'Errore di Accesso',
+        message: 'Si è verificato un errore durante l\'accesso con Google. Riprova tra qualche minuto.'
+      }
+    };
+
+    return errorMessages[errorType] || errorMessages['unknown'];
+  };
 
   const handleGoogleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       try {
-        console.log('>>google logged in');
-        
-        // Chiama l'API di Google per ottenere i dati dell'utente usando axios
+        // Get user data by Google APIs
         const response = await axios.get<GoogleUserInfo>(
           'https://www.googleapis.com/oauth2/v2/userinfo',
           {
@@ -43,18 +73,32 @@ export default function WelcomePage({ onNavigateToLogin, onNavigateToRegister }:
         const userInfo = response.data;
         userInfo.access_token = tokenResponse.access_token;
         console.log('User info:', userInfo);
-        
-        // Mostra il popup debug
-        setDebugUserInfo(userInfo);
-        setShowDebugPopup(true);
-        
-        // userInfo has:
-        // - id: user UID
-        // - email
-        // - name: complete name
-        // - given_name: name
-        // - family_name: surname
-        // - picture: profile picture URL                
+
+        // Login on Eppoi system with Google data
+        const apiResponse = await loginGoogle(userInfo.id, userInfo.name, userInfo.email, userInfo.email);
+
+        let googleLoginSuccess = false;
+        if (apiResponse.success) {
+          const jwtPayload = decodeJwt(apiResponse.result);
+
+          if (jwtPayload) {
+            localStorage.setItem('authToken', apiResponse.result);
+
+            googleLoginSuccess = true;
+            onLogin({
+              name: jwtPayload.Name,
+              userName: jwtPayload.UserName,
+              // Email from Google Login since it is removed from Eppoi token claims for security reasons
+              email: userInfo.email
+            });
+          }
+        } 
+
+        if (!googleLoginSuccess) {
+          const errorObj = getNonAuthErrorMessage({ type: 'unknown' });
+          setErrorState(errorObj);
+          setShowErrorModal(true);
+        }
         
       } catch (error) {
         if (axios.isAxiosError(error)) {
@@ -64,11 +108,22 @@ export default function WelcomePage({ onNavigateToLogin, onNavigateToRegister }:
         } else {
           console.error('Errore sconosciuto:', error);
         }
+        const errorObj = getNonAuthErrorMessage({type: 'unknown'});
+        setErrorState(errorObj);
+        setShowErrorModal(true);
       }
     },
     onError: (errorResponse) => {
       console.error('>>google NOT LOGGED IN');
       console.log(errorResponse);
+      const errorObj = getNonAuthErrorMessage({ type: 'unknown' });
+      setErrorState(errorObj);
+      setShowErrorModal(true);
+    },
+    onNonOAuthError: (nonOAuthError: NonOAuthError) => {
+      const error = getNonAuthErrorMessage(nonOAuthError);
+      setErrorState(error);
+      setShowErrorModal(true);
     }
   });
 
@@ -163,76 +218,26 @@ export default function WelcomePage({ onNavigateToLogin, onNavigateToRegister }:
                   <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                 </svg>
                 <span className="truncate">Continua con Google</span>
-              </button>
-
-              <button
-                onClick={handleFacebookLogin}
-                className="w-full bg-white border-2 border-[#0066cc] text-[#0066cc] hover:bg-[#f0f7ff] py-2.5 sm:py-3 px-4 rounded-lg text-[15px] sm:text-[16px] md:text-[18px] font-['Titillium_Web:SemiBold',sans-serif] transition-colors flex items-center justify-center gap-2"
-              >
-                <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="#1877F2" viewBox="0 0 24 24">
-                  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
-                </svg>
-                <span className="truncate">Continua con Facebook</span>
-              </button>
+              </button>              
             </div>
           </div>
         </div>
       </div>
 
-      {/* Debug Popup Modal */}
-      {showDebugPopup && debugUserInfo && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-3 sm:p-4 md:p-6">
-          <div className="bg-white rounded-lg shadow-2xl w-full sm:max-w-md max-h-[90vh] flex flex-col">
-            {/* Modal Header */}
-            <div className="bg-[#0066cc] px-4 sm:px-6 py-3 sm:py-4 rounded-t-lg flex items-center justify-between">
-              <h3 className="text-white text-[18px] sm:text-[20px] md:text-[22px] font-['Titillium_Web:Bold',sans-serif]">
-                Debug - User Info
-              </h3>
-              <button
-                onClick={() => setShowDebugPopup(false)}
-                className="text-white hover:text-[#bfdfff] transition-colors"
-              >
-                <X className="w-5 h-5 sm:w-6 sm:h-6" />
-              </button>
-            </div>
-
-            {/* Modal Body */}
-            <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-              <p className="text-[#004080] text-[13px] sm:text-[14px] font-['Titillium_Web:Regular',sans-serif] mb-3">
-                Copia il JSON sottostante per condividerlo con il backend:
-              </p>
-              <pre className="bg-[#f5f5f5] border-2 border-[#bfdfff] rounded-lg p-3 sm:p-4 text-[12px] sm:text-[13px] font-mono overflow-x-auto text-[#004080]">
-                {JSON.stringify(debugUserInfo, null, 2)}
-              </pre>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="border-t p-3 sm:p-4 md:p-4 flex gap-2 sm:gap-3">
-              <button
-                onClick={handleCopyJson}
-                className="flex-1 flex items-center justify-center gap-2 bg-[#0066cc] hover:bg-[#004d99] text-white py-2.5 sm:py-3 px-4 rounded-lg text-[14px] sm:text-[15px] font-['Titillium_Web:SemiBold',sans-serif] transition-colors"
-              >
-                {copiedToClipboard ? (
-                  <>
-                    <Check className="w-4 h-4 sm:w-5 sm:h-5" />
-                    <span>Copiato!</span>
-                  </>
-                ) : (
-                  <>
-                    <Copy className="w-4 h-4 sm:w-5 sm:h-5" />
-                    <span>Copia JSON</span>
-                  </>
-                )}
-              </button>
-              <button
-                onClick={() => setShowDebugPopup(false)}
-                className="flex-1 bg-white border-2 border-[#0066cc] text-[#0066cc] hover:bg-[#f0f7ff] py-2.5 sm:py-3 px-4 rounded-lg text-[14px] sm:text-[15px] font-['Titillium_Web:SemiBold',sans-serif] transition-colors"
-              >
-                Chiudi
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* Error Modal */}
+      {errorState && (
+        <ErrorModal
+          isOpen={showErrorModal}
+          title={errorState.title}
+          message={errorState.message}
+          onClose={closeErrorModal}
+          onRetry={() => {
+            closeErrorModal();
+            handleGoogleLogin();
+          }}
+          retryLabel="Riprova"
+          cancelLabel="Chiudi"
+        />
       )}
 
       {/* Footer */}
