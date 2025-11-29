@@ -2,6 +2,8 @@ import { GoogleOAuthProvider } from '@react-oauth/google';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import ForgotPasswordPage from './components/ForgotPasswordPage';
+import EmailVerification from './components/EmailVerification';
+import EmailVerificationRequired from './components/EmailVerificationRequired';
 import WelcomePage from './components/WelcomePage';
 import LoginPage from './components/LoginPage';
 import RegisterPage from './components/RegisterPage';
@@ -12,6 +14,7 @@ interface User {
     name: string;
     userName: string;
     email: string;
+    emailConfirmed: boolean;
 }
 
 const STORAGE_KEY = 'authenticatedUser';
@@ -24,7 +27,7 @@ interface ProtectedRouteProps {
 }
 
 function ProtectedRoute({ children, user }: ProtectedRouteProps) {
-    return user ? children : <Navigate to="/welcome" replace />;
+  return user ? (user.emailConfirmed ? children : <Navigate to="/needs-verification" replace />) : <Navigate to="/welcome" replace />;
 }
 
 // Public Route - redirect to home if already authenticated
@@ -36,6 +39,18 @@ interface PublicRouteProps {
 function PublicRoute({ children, user }: PublicRouteProps) {
     return !user ? children : <Navigate to="/" replace />;
 }
+
+// Mail to confirm Route - redirect to verify email message if authenticated but still not verified
+//needs-verification
+interface MailToVerifyRouteProps {
+  children: React.ReactNode;
+  user: User | null;
+}
+
+function MailToVerifyRoute({ children, user }: ProtectedRouteProps) {
+  return user && !user.emailConfirmed ? children : <Navigate to="/" replace />;
+}
+
 
 export default function App() {
     const [user, setUser] = useState<User | null>(() => {
@@ -63,7 +78,7 @@ export default function App() {
         setUser(userData);
     };
 
-    const handleLogout = () => {
+  const handleLogout = () => {
         localStorage.removeItem('authenticatedUser');
         localStorage.removeItem('authToken');
         setUser(null);
@@ -111,6 +126,20 @@ export default function App() {
                             <PublicRoute user={user}>
                                 <ResetPasswordPage />
                             </PublicRoute>
+                        }
+                    />                    
+                    <Route
+                        path="/verify-email"
+                        element={
+                          <EmailVerification onLogin={handleLogin} />
+                        }
+                    />
+                    <Route
+                        path="/needs-verification"
+                        element={
+                          <MailToVerifyRoute user={user}>
+                            <EmailVerificationRequired user={user} onLogout={handleLogout} />
+                            </MailToVerifyRoute>
                         }
                     />
                     <Route

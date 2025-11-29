@@ -10,7 +10,7 @@ import ErrorModal from './ui/ErrorModal';
 import { decodeJwt } from './ui/utils';
 
 interface LoginPageProps {
-  onLogin: (userData: { name: string; userName: string; email: string }) => void;
+  onLogin: (userData: { name: string; userName: string; email: string, emailConfirmed: boolean }) => void;
 }
 
 interface ErrorState {
@@ -70,7 +70,8 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
             onLogin({
               name: jwtPayload.Name,
               userName: jwtPayload.UserName,
-              email: jwtPayload.Email
+              email: email,
+              emailConfirmed: true
             });
 
             navigate('/home');
@@ -86,16 +87,12 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
         }
       } catch (err) {
         if (err instanceof ApiErrorWithResponse && err.response) {
-          if (!err.response.success) {
+          const result = err.response?.result;
+          if (result && (result.toLowerCase().includes('failed') || result.toLowerCase().includes('password'))) {
             setPasswordError(['Login fallito. Controllare email e/o password']);
           } else {
-            console.error('<>>resp result');
-            console.log(err.response.result);
-
-            const respResult = err.response.result.replace('Please Confirm your Email: ', '');
-            console.error('<>>resp result2');
-            console.log(respResult);
-            loginWithToken(respResult);
+            // If there is no specific error, the result is the confirmation token so the user have to confirm his email
+            onLogin({name: '', userName: email, email: email, emailConfirmed: false});            
           }
         } else {
           setErrorState({

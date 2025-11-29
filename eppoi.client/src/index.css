@@ -49,6 +49,15 @@
             --tw-drop-shadow-color: initial;
             --tw-drop-shadow-alpha: 100%;
             --tw-drop-shadow-size: initial;
+            --tw-backdrop-blur: initial;
+            --tw-backdrop-brightness: initial;
+            --tw-backdrop-contrast: initial;
+            --tw-backdrop-grayscale: initial;
+            --tw-backdrop-hue-rotate: initial;
+            --tw-backdrop-invert: initial;
+            --tw-backdrop-opacity: initial;
+            --tw-backdrop-saturate: initial;
+            --tw-backdrop-sepia: initial;
             --tw-duration: initial;
         }
     }
@@ -87,6 +96,7 @@
         --color-white: #fff;
         --spacing: .25rem;
         --container-md: 28rem;
+        --container-2xl: 42rem;
         --container-4xl: 56rem;
         --container-7xl: 80rem;
         --text-base: 1rem;
@@ -98,6 +108,7 @@
         --leading-relaxed: 1.625;
         --radius-2xl: 1rem;
         --animate-spin: spin 1s linear infinite;
+        --blur-sm: 8px;
         --default-transition-duration: .15s;
         --default-transition-timing-function: cubic-bezier(.4, 0, .2, 1);
         --default-font-family: var(--font-sans);
@@ -636,6 +647,10 @@
         width: calc(var(--spacing) * 6);
     }
 
+    .w-8 {
+        width: calc(var(--spacing) * 8);
+    }
+
     .w-12 {
         width: calc(var(--spacing) * 12);
     }
@@ -650,6 +665,10 @@
 
     .w-full {
         width: 100%;
+    }
+
+    .max-w-2xl {
+        max-width: var(--container-2xl);
     }
 
     .max-w-4xl {
@@ -866,6 +885,10 @@
         border-color: #06c;
     }
 
+    .border-\[\#bfdfff\] {
+        border-color: #bfdfff;
+    }
+
     .border-\[\#ffd700\] {
         border-color: gold;
     }
@@ -988,6 +1011,16 @@
 
     .bg-white {
         background-color: var(--color-white);
+    }
+
+    .bg-white\/10 {
+        background-color: #ffffff1a;
+    }
+
+    @supports (color: color-mix(in lab, red, red)) {
+        .bg-white\/10 {
+            background-color: color-mix(in oklab, var(--color-white) 10%, transparent);
+        }
     }
 
     .bg-yellow-500 {
@@ -1125,6 +1158,10 @@
         padding-right: calc(var(--spacing) * 12);
     }
 
+    .pl-5 {
+        padding-left: calc(var(--spacing) * 5);
+    }
+
     .pl-9 {
         padding-left: calc(var(--spacing) * 9);
     }
@@ -1238,6 +1275,14 @@
         color: #bfdfff;
     }
 
+    .text-\[\#ff9900\] {
+        color: #f90;
+    }
+
+    .text-\[\#ffd700\] {
+        color: gold;
+    }
+
     .text-amber-700 {
         color: var(--color-amber-700);
     }
@@ -1334,6 +1379,12 @@
         filter: var(--tw-blur, ) var(--tw-brightness, ) var(--tw-contrast, ) var(--tw-grayscale, ) var(--tw-hue-rotate, ) var(--tw-invert, ) var(--tw-saturate, ) var(--tw-sepia, ) var(--tw-drop-shadow, );
     }
 
+    .backdrop-blur-sm {
+        --tw-backdrop-blur: blur(var(--blur-sm));
+        -webkit-backdrop-filter: var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, );
+        backdrop-filter: var(--tw-backdrop-blur, ) var(--tw-backdrop-brightness, ) var(--tw-backdrop-contrast, ) var(--tw-backdrop-grayscale, ) var(--tw-backdrop-hue-rotate, ) var(--tw-backdrop-invert, ) var(--tw-backdrop-opacity, ) var(--tw-backdrop-saturate, ) var(--tw-backdrop-sepia, );
+    }
+
     .transition-all {
         transition-property: all;
         transition-timing-function: var(--tw-ease, var(--default-transition-timing-function));
@@ -1389,6 +1440,18 @@
     @media (hover: hover) {
         .hover\:bg-gray-50:hover {
             background-color: var(--color-gray-50);
+        }
+    }
+
+    @media (hover: hover) {
+        .hover\:bg-white\/20:hover {
+            background-color: #fff3;
+        }
+
+        @supports (color: color-mix(in lab, red, red)) {
+            .hover\:bg-white\/20:hover {
+                background-color: color-mix(in oklab, var(--color-white) 20%, transparent);
+            }
         }
     }
 
@@ -2504,6 +2567,51 @@ html {
 }
 
 @property --tw-drop-shadow-size {
+    syntax: "*";
+    inherits: false
+}
+
+@property --tw-backdrop-blur {
+    syntax: "*";
+    inherits: false
+}
+
+@property --tw-backdrop-brightness {
+    syntax: "*";
+    inherits: false
+}
+
+@property --tw-backdrop-contrast {
+    syntax: "*";
+    inherits: false
+}
+
+@property --tw-backdrop-grayscale {
+    syntax: "*";
+    inherits: false
+}
+
+@property --tw-backdrop-hue-rotate {
+    syntax: "*";
+    inherits: false
+}
+
+@property --tw-backdrop-invert {
+    syntax: "*";
+    inherits: false
+}
+
+@property --tw-backdrop-opacity {
+    syntax: "*";
+    inherits: false
+}
+
+@property --tw-backdrop-saturate {
+    syntax: "*";
+    inherits: false
+}
+
+@property --tw-backdrop-sepia {
     syntax: "*";
     inherits: false
 }

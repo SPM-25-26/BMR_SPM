@@ -9,6 +9,11 @@ const apiClient = axios.create({
     },
 });
 
+interface ConfirmEmailInput {
+  userId: string;
+  token: string;
+}
+
 interface GoogleLoginInput {
   googleUid: string;
   name: string;
@@ -75,6 +80,14 @@ const invokeApi = async <T,>(callee: () => Promise<{ data: T }>, msgErr: string)
   }
 }
 
+export async function confirmEmail(userId: string, token: string): Promise<LoginResponse> {
+  const apiInput: ConfirmEmailInput = { userId: userId, token: token };
+
+  return invokeApi(async () => {
+    return await apiClient.post<LoginResponse>('/ConfirmEmail', apiInput);
+  }, 'Errore durante la conferma della mail');
+}
+
 export async function loginUser(email: string, password: string): Promise<LoginResponse> {
   return invokeApi(async () => {
     return await apiClient.post<LoginResponse>('/Login', {
@@ -94,7 +107,7 @@ export async function loginGoogle(googleUid: string, name: string, userName: str
 
 export async function recoverPassword(email: string): Promise<LoginResponse> {
   return invokeApi(async () => {
-    return await apiClient.post<LoginResponse>('/RecoverPassword?email=' + email, {});
+    return await apiClient.post<LoginResponse>('/RecoverPassword?email=' + encodeURIComponent(email), {});
   }, 'Errore durante il recupero password');
 }
 
