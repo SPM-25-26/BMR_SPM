@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { UserPlus, ArrowLeft } from 'lucide-react';
 import logoImage from 'figma:asset/958defa264c22f47e7a42e2e88ba5be34b61d176.png';
 import { registerUser, ApiErrorWithResponse } from '../api/authApi';
@@ -9,8 +10,6 @@ import ErrorModal from './ui/ErrorModal';
 
 interface RegisterPageProps {
   onRegister: (userData: { name: string; userName: string; email: string }) => void;
-  onNavigateToLogin: () => void;
-  onNavigateToWelcome: () => void;
 }
 
 type ErrorType = 'duplicate-user' | 'server-error' | null;
@@ -21,7 +20,8 @@ interface ErrorState {
   message: string;
 }
 
-export default function RegisterPage({ onRegister, onNavigateToLogin, onNavigateToWelcome }: RegisterPageProps) {
+export default function RegisterPage({ onRegister }: RegisterPageProps) {
+  const navigate = useNavigate();
   const formRef = useRef<HTMLFormElement>(null);
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -82,7 +82,7 @@ export default function RegisterPage({ onRegister, onNavigateToLogin, onNavigate
     const emailErrors: string[] = [];
     const passwordErrors: string[] = [];
     let hasDuplicateError = false;    
-    let hasServerError = false;       // Generic error
+    let hasServerError = false;
 
     errors.forEach(err => {
       if (err.code.toLowerCase().includes('duplicate')) {
@@ -105,7 +105,6 @@ export default function RegisterPage({ onRegister, onNavigateToLogin, onNavigate
             passwordErrors.push("La password deve contenere almeno 6 caratteri");
             break;
           default:
-            // Should never happen 'cause we should know all possible server errors
             passwordErrors.push("Password troppo debole");
             break;
         }
@@ -131,7 +130,6 @@ export default function RegisterPage({ onRegister, onNavigateToLogin, onNavigate
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-
     e.preventDefault();
     if (isFormValid && !isLoading) {
       setIsLoading(true);
@@ -140,13 +138,15 @@ export default function RegisterPage({ onRegister, onNavigateToLogin, onNavigate
 
         const response = await registerUser({
           name: capitalizedName,
-          userName: email, // Using email as username - TODO better handling
+          userName: email,
           email: email,
           password: password
         });
 
         if (response.success) {          
           onRegister(response.result);
+          // Naviga automaticamente a / dopo la registrazione riuscita
+          navigate('/');
         } else {
           handleApiError(response.result.errors);
         }
@@ -160,7 +160,6 @@ export default function RegisterPage({ onRegister, onNavigateToLogin, onNavigate
       } finally {
         setIsLoading(false);
       }      
-      
     }
   };
 
@@ -192,7 +191,7 @@ export default function RegisterPage({ onRegister, onNavigateToLogin, onNavigate
   const handleRetry = () => {
     closeErrorModal();
     if (errorState.type === 'duplicate-user') {
-      onNavigateToLogin();
+      navigate('/login');
     } else { 
       triggerSubmit();
     }
@@ -208,7 +207,7 @@ export default function RegisterPage({ onRegister, onNavigateToLogin, onNavigate
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <img src={logoImage} alt="Eppoi" className="h-5 sm:h-6 md:h-7 ml-1 sm:ml-2" />
           <button
-            onClick={onNavigateToWelcome}
+            onClick={() => navigate('/welcome')}
             disabled={isLoading}
             className="flex items-center gap-1.5 sm:gap-2 bg-white text-[#0066cc] hover:bg-[#bfdfff] px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -339,7 +338,7 @@ export default function RegisterPage({ onRegister, onNavigateToLogin, onNavigate
               {/* Login Button */}
               <button
                 type="button"
-                onClick={onNavigateToLogin}
+                onClick={() => navigate('/login')}
                 disabled={isLoading}
                 className="w-full bg-white border-2 border-[#0066cc] text-[#0066cc] hover:bg-[#f0f7ff] py-3 sm:py-3.5 md:py-4 px-6 rounded-lg text-[17px] sm:text-[18px] md:text-[20px] font-['Titillium_Web:SemiBold',sans-serif] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >

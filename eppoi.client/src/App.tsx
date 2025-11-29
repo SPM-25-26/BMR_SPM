@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
 import { GoogleOAuthProvider } from '@react-oauth/google';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import WelcomePage from './components/WelcomePage';
 import LoginPage from './components/LoginPage';
 import RegisterPage from './components/RegisterPage';
@@ -14,11 +15,28 @@ interface User {
 const STORAGE_KEY = 'authenticatedUser';
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
-export default function App() {
-    const [currentPage, setCurrentPage] = useState<'welcome' | 'login' | 'register' | 'home'>('welcome');
+// Protected Route - only authenticated users
+interface ProtectedRouteProps {
+    children: React.ReactNode;
+    user: User | null;
+}
 
+function ProtectedRoute({ children, user }: ProtectedRouteProps) {
+    return user ? children : <Navigate to="/welcome" replace />;
+}
+
+// Public Route - redirect to home if already authenticated
+interface PublicRouteProps {
+    children: React.ReactNode;
+    user: User | null;
+}
+
+function PublicRoute({ children, user }: PublicRouteProps) {
+    return !user ? children : <Navigate to="/" replace />;
+}
+
+export default function App() {
     const [user, setUser] = useState<User | null>(() => {
-        // Inizializza lo stato dal localStorage al primo render
         const storedUser = localStorage.getItem(STORAGE_KEY);
         if (storedUser) {
             try {
@@ -30,66 +48,64 @@ export default function App() {
         return null;
     });
 
-    // Sync localStorage when user changes
     useEffect(() => {
         if (user) {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-            setCurrentPage('home');
         } else {
             localStorage.removeItem(STORAGE_KEY);
+            localStorage.removeItem('authToken');
         }
     }, [user]);
 
-    const [userName, setUserName] = useState('');
-
     const handleLogin = (userData: User) => {
         setUser(userData);
-        setCurrentPage('home');
     };
 
     const handleLogout = () => {
         localStorage.removeItem('authenticatedUser');
         localStorage.removeItem('authToken');
         setUser(null);
-        setCurrentPage('welcome');
-    };
-
-    const handleNavigateToLogin = () => {
-        setCurrentPage('login');
-    };
-
-    const handleNavigateToRegister = () => {
-        setCurrentPage('register');
-    };
-
-    const handleNavigateToWelcome = () => {
-        setCurrentPage('welcome');
     };
 
     return (
         <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-            {!user ? (
-                currentPage === 'login' ? (
-                    <LoginPage
-                        onLogin={handleLogin}
-                        onNavigateToRegister={handleNavigateToRegister}
-                        onNavigateToWelcome={handleNavigateToWelcome}
+            <Router>
+                <Routes>
+                    <Route
+                        path="/welcome"
+                        element={
+                            <PublicRoute user={user}>
+                                <WelcomePage onLogin={handleLogin} />
+                            </PublicRoute>
+                        }
                     />
-                ) : currentPage === 'register' ? (
-                    <RegisterPage
-                        onRegister={handleLogin}
-                        onNavigateToLogin={handleNavigateToLogin}
-                        onNavigateToWelcome={handleNavigateToWelcome}
+                    <Route
+                        path="/login"
+                        element={
+                            <PublicRoute user={user}>
+                                <LoginPage onLogin={handleLogin} />
+                            </PublicRoute>
+                        }
                     />
-                ) : (
-                    <WelcomePage
-                        onNavigateToLogin={handleNavigateToLogin}
-                        onNavigateToRegister={handleNavigateToRegister}
+                    <Route
+                        path="/register"
+                        element={
+                            <PublicRoute user={user}>
+                                <RegisterPage onRegister={handleLogin} />
+                            </PublicRoute>
+                        }
                     />
-                )
-            ) : (
-                <HomePage user={user} onLogout={handleLogout} />
-            )}
+                    <Route
+                        path="/"
+                        element={
+                            <ProtectedRoute user={user}>
+                                <HomePage user={user} onLogout={handleLogout} />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route path="*" element={<Navigate to="/" replace />} />
+                </Routes>
+            </Router>
         </GoogleOAuthProvider>
     );
 }

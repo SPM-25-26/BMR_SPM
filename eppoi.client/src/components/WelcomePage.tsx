@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useGoogleLogin, type NonOAuthError } from '@react-oauth/google';
 import logoImage from 'figma:asset/958defa264c22f47e7a42e2e88ba5be34b61d176.png';
@@ -8,8 +9,6 @@ import { decodeJwt } from './ui/utils';
 
 interface WelcomePageProps {
   onLogin: (userData: { name: string; userName: string; email: string }) => void;
-  onNavigateToLogin: () => void;
-  onNavigateToRegister: () => void;
 }
 
 interface GoogleUserInfo {
@@ -27,7 +26,8 @@ interface ErrorState {
   message: string;
 }
 
-export default function WelcomePage({ onLogin, onNavigateToLogin, onNavigateToRegister }: WelcomePageProps) {
+export default function WelcomePage({ onLogin }: WelcomePageProps) {
+  const navigate = useNavigate();
   const [errorState, setErrorState] = useState<ErrorState | null>(null);
   const [showErrorModal, setShowErrorModal] = useState(false);
 
@@ -88,9 +88,10 @@ export default function WelcomePage({ onLogin, onNavigateToLogin, onNavigateToRe
             onLogin({
               name: jwtPayload.Name,
               userName: jwtPayload.UserName,
-              // Email from Google Login since it is removed from Eppoi token claims for security reasons
               email: userInfo.email
             });
+
+            navigate('/');
           }
         } 
 
@@ -108,7 +109,7 @@ export default function WelcomePage({ onLogin, onNavigateToLogin, onNavigateToRe
         } else {
           console.error('Errore sconosciuto:', error);
         }
-        const errorObj = getNonAuthErrorMessage({type: 'unknown'});
+        const errorObj = getNonAuthErrorMessage({ type: 'unknown' });
         setErrorState(errorObj);
         setShowErrorModal(true);
       }
@@ -126,21 +127,6 @@ export default function WelcomePage({ onLogin, onNavigateToLogin, onNavigateToRe
       setShowErrorModal(true);
     }
   });
-
-  const handleFacebookLogin = () => {
-    // Mock Facebook login
-    alert('Facebook login would be implemented here');
-  };
-
-  const handleCopyJson = () => {
-    if (debugUserInfo) {
-      const jsonString = JSON.stringify(debugUserInfo, null, 2);
-      navigator.clipboard.writeText(jsonString).then(() => {
-        setCopiedToClipboard(true);
-        setTimeout(() => setCopiedToClipboard(false), 2000);
-      });
-    }
-  };
 
   return (
     <div className="flex flex-col min-h-screen bg-[#004d99]">
@@ -167,7 +153,7 @@ export default function WelcomePage({ onLogin, onNavigateToLogin, onNavigateToRe
             
             {/* Register Button */}
             <button
-              onClick={onNavigateToRegister}
+              onClick={() => navigate('/register')}
               className="w-full bg-[#0066cc] hover:bg-[#004d99] text-white py-3 sm:py-3.5 md:py-4 px-6 rounded-lg text-[17px] sm:text-[18px] md:text-[20px] font-['Titillium_Web:SemiBold',sans-serif] transition-colors mb-4 sm:mb-5 md:mb-6"
             >
               CREA UN ACCOUNT
@@ -187,7 +173,7 @@ export default function WelcomePage({ onLogin, onNavigateToLogin, onNavigateToRe
 
             {/* Login Button */}
             <button
-              onClick={onNavigateToLogin}
+              onClick={() => navigate('/login')}
               className="w-full bg-white border-2 border-[#0066cc] text-[#0066cc] hover:bg-[#f0f7ff] py-3 sm:py-3.5 md:py-4 px-6 rounded-lg text-[17px] sm:text-[18px] md:text-[20px] font-['Titillium_Web:SemiBold',sans-serif] transition-colors mb-4 sm:mb-5 md:mb-6"
             >
               LOGIN
@@ -247,5 +233,5 @@ export default function WelcomePage({ onLogin, onNavigateToLogin, onNavigateToRe
         </p>
       </div>
     </div>
-    );    
+  );    
 }

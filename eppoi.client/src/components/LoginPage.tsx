@@ -1,4 +1,5 @@
 import { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Mail, ArrowLeft } from 'lucide-react';
 import logoImage from 'figma:asset/958defa264c22f47e7a42e2e88ba5be34b61d176.png';
 import { loginUser, ApiErrorWithResponse } from '../api/authApi';
@@ -10,8 +11,6 @@ import { decodeJwt } from './ui/utils';
 
 interface LoginPageProps {
   onLogin: (userData: { name: string; userName: string; email: string }) => void;
-  onNavigateToRegister: () => void;
-  onNavigateToWelcome: () => void;
 }
 
 interface ErrorState {
@@ -19,7 +18,8 @@ interface ErrorState {
   message: string;
 }
 
-export default function LoginPage({ onLogin, onNavigateToRegister, onNavigateToWelcome }: LoginPageProps) {
+export default function LoginPage({ onLogin }: LoginPageProps) {
+  const navigate = useNavigate();
   const formRef = useRef<HTMLFormElement>(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -44,13 +44,11 @@ export default function LoginPage({ onLogin, onNavigateToRegister, onNavigateToW
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setEmail(e.target.value);
-    // Cancella l'errore di credenziali quando l'utente modifica l'email
     setPasswordError([]);
   };
 
   const handlePasswordChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPassword(e.target.value);
-    // Cancella l'errore di credenziali quando l'utente modifica la password
     setPasswordError([]);
   };
 
@@ -68,12 +66,14 @@ export default function LoginPage({ onLogin, onNavigateToRegister, onNavigateToW
           
           if (jwtPayload) {
             localStorage.setItem('authToken', response.result);
-            
+
             onLogin({
               name: jwtPayload.Name,
               userName: jwtPayload.UserName,
               email: jwtPayload.Email
             });
+
+            navigate('/home');
           } else {
             setErrorState({
               title: 'Errore di Autenticazione',
@@ -82,15 +82,22 @@ export default function LoginPage({ onLogin, onNavigateToRegister, onNavigateToW
             setShowErrorModal(true);
           }
         } else {
-          // Wrong credentials
           setPasswordError(['Login fallito. Controllare email e/o password']);
         }
       } catch (err) {
-        if (err instanceof ApiErrorWithResponse && err.response && !err.response.success) {
-          // Wrong credentials
-          setPasswordError(['Login fallito. Controllare email e/o password']);
+        if (err instanceof ApiErrorWithResponse && err.response) {
+          if (!err.response.success) {
+            setPasswordError(['Login fallito. Controllare email e/o password']);
+          } else {
+            console.error('<>>resp result');
+            console.log(err.response.result);
+
+            const respResult = err.response.result.replace('Please Confirm your Email: ', '');
+            console.error('<>>resp result2');
+            console.log(respResult);
+            loginWithToken(respResult);
+          }
         } else {
-          // A network or other kind of error
           setErrorState({
             title: 'Errore Server',
             message: 'Si è verificato un errore durante l\'accesso. Il server non è attualmente disponibile. Riprova tra qualche minuto.'
@@ -113,7 +120,7 @@ export default function LoginPage({ onLogin, onNavigateToRegister, onNavigateToW
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <img src={logoImage} alt="Eppoi" className="h-5 sm:h-6 md:h-7 ml-1 sm:ml-2" />
           <button
-            onClick={onNavigateToWelcome}
+            onClick={() => navigate('/')}
             disabled={isLoading}
             className="flex items-center gap-1.5 sm:gap-2 bg-white text-[#0066cc] hover:bg-[#bfdfff] px-2.5 sm:px-3 md:px-4 py-1.5 sm:py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -205,7 +212,7 @@ export default function LoginPage({ onLogin, onNavigateToRegister, onNavigateToW
               {/* Register Button */}
               <button
                 type="button"
-                onClick={onNavigateToRegister}
+                onClick={() => navigate('/register')}
                 disabled={isLoading}
                 className="w-full bg-white border-2 border-[#0066cc] text-[#0066cc] hover:bg-[#f0f7ff] py-3 sm:py-3.5 md:py-4 px-6 rounded-lg text-[17px] sm:text-[18px] md:text-[20px] font-['Titillium_Web:SemiBold',sans-serif] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
