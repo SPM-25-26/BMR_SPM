@@ -57,9 +57,9 @@ namespace eppoi.Server.Services
             return result;
         }
 
-        public async Task<string> ConfirmEmail(string email, string token)
+        public async Task<string> ConfirmEmail(string id, string token)
         {
-            var user = await _userManager.FindByEmailAsync(email);
+            var user = await _userManager.FindByIdAsync(id);
             if (user == null) return "Email";
 
             var result = await _userManager.ConfirmEmailAsync(user, token);
