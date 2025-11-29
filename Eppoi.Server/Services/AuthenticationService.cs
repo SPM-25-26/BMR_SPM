@@ -93,7 +93,7 @@ namespace eppoi.Server.Services
         }
         public async Task<IdentityResult> ResetPassword(PasswordResetDto request)
         {
-            var user = await _userManager.FindByEmailAsync(request.Email);
+            var user = await _userManager.FindByIdAsync(request.UserId);
             if (user == null) return IdentityResult.Failed();
             var result = await _userManager.ResetPasswordAsync(user, request.Token, request.NewPassword);
             return result;

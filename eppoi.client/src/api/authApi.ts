@@ -20,6 +20,12 @@ interface LoginResponse {
     result: string;
 }
 
+interface PasswordResetInput {
+  userId: string;
+  token: string;
+  newPassword: string;  
+}
+
 interface RegisterInput {
     name: string;
     userName: string;
@@ -84,6 +90,20 @@ export async function loginGoogle(googleUid: string, name: string, userName: str
   return invokeApi(async () => {
     return await apiClient.post<LoginResponse>('/GoogleLogin', apiInput);
   }, 'Errore durante il login con Google');      
+}
+
+export async function recoverPassword(email: string): Promise<LoginResponse> {
+  return invokeApi(async () => {
+    return await apiClient.post<LoginResponse>('/RecoverPassword?email=' + email, {});
+  }, 'Errore durante il recupero password');
+}
+
+export async function resetPassword(userId: string, token: string, password: string): Promise<LoginResponse> {
+  const apiInput: PasswordResetInput = { userId: userId, token: token, newPassword: password };
+
+  return invokeApi(async () => {
+    return await apiClient.post<LoginResponse>('/ResetPassword', apiInput);
+  }, 'Errore durante il reset della password');
 }
 
 export async function registerUser(userData: RegisterInput): Promise<RegisterResponse> {

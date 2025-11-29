@@ -1,6 +1,7 @@
 ﻿using eppoi.Server.Models.Responses;
 using Eppoi.Server.Models;
 using System.Reflection;
+using System.Text;
 
 namespace eppoi.Server.Models.Factories
 {
@@ -41,7 +42,8 @@ namespace eppoi.Server.Models.Factories
         {
             string body = LoadEmbeddedTemplate("eppoi.Server.EmailTemplates.PasswordReset.html")
                 .Replace("{{Name}}", user.Name)
-                .Replace("{{Token}}", token);
+                .Replace("{{UserId}}", Uri.EscapeDataString(user.Id))
+                .Replace("{{Token}}", Uri.EscapeDataString(token));
 
             Email email = new()
             {

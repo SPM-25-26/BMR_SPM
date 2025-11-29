@@ -189,6 +189,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
               {/* Forgot Password */}
               <div className="text-center">
                 <button
+                  onClick={() => navigate('/recover-password')}
                   type="button"
                   disabled={isLoading}
                   className="text-[#0066cc] text-[13px] sm:text-[14px] font-['Titillium_Web:Regular',sans-serif] hover:underline disabled:opacity-50 disabled:cursor-not-allowed"

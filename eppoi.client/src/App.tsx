@@ -1,10 +1,12 @@
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
+import ForgotPasswordPage from './components/ForgotPasswordPage';
 import WelcomePage from './components/WelcomePage';
 import LoginPage from './components/LoginPage';
 import RegisterPage from './components/RegisterPage';
 import HomePage from './components/HomePage';
+import ResetPasswordPage from './components/ResetPasswordPage';
 
 interface User {
     name: string;
@@ -92,6 +94,22 @@ export default function App() {
                         element={
                             <PublicRoute user={user}>
                                 <RegisterPage onRegister={handleLogin} />
+                            </PublicRoute>
+                        }
+                    />
+                    <Route
+                        path="/recover-password"
+                        element={
+                            <PublicRoute user={user}>
+                                <ForgotPasswordPage />
+                            </PublicRoute>
+                        }
+                    />
+                    <Route
+                        path="/reset-password"
+                        element={
+                            <PublicRoute user={user}>
+                                <ResetPasswordPage />
                             </PublicRoute>
                         }
                     />
