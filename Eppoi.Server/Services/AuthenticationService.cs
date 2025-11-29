@@ -86,6 +86,9 @@ namespace eppoi.Server.Services
             var user = await _userManager.FindByEmailAsync(email);
             if (user == null) return "";
             var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+
+            Email emailDto = EmailFactory.PasswordReset(user, token);
+            _smtpService.SendMail(emailDto);
             return token;
         }
         public async Task<IdentityResult> ResetPassword(PasswordResetDto request)
