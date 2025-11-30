@@ -115,7 +115,6 @@ builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection("Authen
 builder.Services.AddScoped<SmtpService>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<AuthenticationService>();
-builder.Services.AddScoped<GoogleValidationService>();
 
 
 var app = builder.Build();

@@ -15,12 +15,13 @@ using System.Security.Claims;
 
 namespace eppoi.Server.Services
 {
-    public class AuthenticationService(UserManager<User> userService, TokenService tokenService, SmtpService smtpService, GoogleValidationService googleAuthenticationService)
+    public class AuthenticationService(UserManager<User> userService, TokenService tokenService, SmtpService smtpService)
     {
         private readonly UserManager<User> _userManager = userService;
         private readonly TokenService _tokenService = tokenService;
         private readonly SmtpService _smtpService = smtpService;
-        private readonly GoogleValidationService _googleAuthenticationService = googleAuthenticationService;
+
+        private readonly string _googleUserInfoUrl = "https://www.googleapis.com/oauth2/v3/userinfo";
 
         public async Task<IdentityResult> CreateUser(UserDto request)
         {
@@ -152,15 +153,22 @@ namespace eppoi.Server.Services
             return result;
         }
 
+
+
+
+
         private async Task<bool> CheckRequest(GoogleInfoDto request) {
-            var payload = await _googleAuthenticationService.ValidateIdToken(request.Id);
-            if (payload == null) return false;
+            using var httpClient = new HttpClient();
 
-            var token = await _googleAuthenticationService.ValidateAccessToken(request.GoogleToken);
-            if (token == null) return false;
+            var response = await httpClient.GetAsync($"{_googleUserInfoUrl}?access_token={request.GoogleToken}");
+            response.EnsureSuccessStatusCode();
 
-            if (payload.Email != request.Email && token.Email != request.Email) return false;
-            if (payload.Name != request.Name && token.Name != request.Name) return false;
+            var content = await response.Content.ReadAsStringAsync();
+            var userProfile = JsonConvert.DeserializeObject<GoogleUserProfile>(content);
+
+            if (userProfile == null) return false;
+
+            if (userProfile.Email != request.Email || userProfile.Name != request.Name) return false;
 
             return true;
         }
