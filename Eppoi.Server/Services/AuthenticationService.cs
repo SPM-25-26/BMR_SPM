@@ -5,18 +5,22 @@ using eppoi.Server.Models.Factories;
 using Eppoi.Server.Models;
 using Eppoi.Server.Models.Dto;
 using Eppoi.Server.Services;
+using Google.Apis.Auth;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore.Query;
+using Newtonsoft.Json;
+using System.ComponentModel;
 using System.Reflection.Metadata.Ecma335;
 using System.Security.Claims;
 
 namespace eppoi.Server.Services
 {
-    public class AuthenticationService(UserManager<User> userService, TokenService tokenService, SmtpService smtpService)
+    public class AuthenticationService(UserManager<User> userService, TokenService tokenService, SmtpService smtpService, GoogleValidationService googleAuthenticationService)
     {
         private readonly UserManager<User> _userManager = userService;
         private readonly TokenService _tokenService = tokenService;
         private readonly SmtpService _smtpService = smtpService;
+        private readonly GoogleValidationService _googleAuthenticationService = googleAuthenticationService;
 
         public async Task<IdentityResult> CreateUser(UserDto request)
         {
@@ -112,8 +116,11 @@ namespace eppoi.Server.Services
         public async Task<string> GoogleLogin(GoogleInfoDto request)
         {
             if (request == null) return "Request Error";
+            var check = await CheckRequest(request);
 
-            var email = request.email;
+            if (!check) return "Validation Error";
+
+            var email = request.Email;
             var user = await _userManager.FindByEmailAsync(email);
 
             if (user == null)
@@ -121,9 +128,9 @@ namespace eppoi.Server.Services
                 user = new User
                 {
                     UserName = email.Split('@')[0],
-                    GoogleId = request.id,
+                    GoogleId = request.Id,
                     Email = email,
-                    Name = request.name,
+                    Name = request.Name,
                     CreatedDate = DateTime.UtcNow,
                     EmailConfirmed = true
                 };
@@ -135,7 +142,7 @@ namespace eppoi.Server.Services
             {
                 if (user.GoogleId == null)
                 {
-                    user.GoogleId = request.id;
+                    user.GoogleId = request.Id;
                     user.EmailConfirmed = true;
                     await _userManager.UpdateAsync(user);
                 }
@@ -143,6 +150,19 @@ namespace eppoi.Server.Services
 
             var result = _tokenService.CreateToken(true, user);
             return result;
-        } 
+        }
+
+        private async Task<bool> CheckRequest(GoogleInfoDto request) {
+            var payload = await _googleAuthenticationService.ValidateIdToken(request.Id);
+            if (payload == null) return false;
+
+            var token = await _googleAuthenticationService.ValidateAccessToken(request.GoogleToken);
+            if (token == null) return false;
+
+            if (payload.Email != request.Email && token.Email != request.Email) return false;
+            if (payload.Name != request.Name && token.Name != request.Name) return false;
+
+            return true;
+        }
     }
 }

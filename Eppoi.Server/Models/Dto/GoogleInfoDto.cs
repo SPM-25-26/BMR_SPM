@@ -2,9 +2,10 @@
 {
     public class GoogleInfoDto
     {
-        public string id { get; set; } = string.Empty;
-        public string email { get; set; } = string.Empty;
-        public string username { get; set; } = string.Empty;
-        public string name { get; set; } = string.Empty;
+        public string Id { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Username { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
+        public string GoogleToken { get; set; } = string.Empty;
     }
 }
