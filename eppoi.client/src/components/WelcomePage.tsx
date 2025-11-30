@@ -8,7 +8,7 @@ import ErrorModal from './ui/ErrorModal';
 import { decodeJwt } from './ui/utils';
 
 interface WelcomePageProps {
-  onLogin: (userData: { name: string; userName: string; email: string }) => void;
+  onLogin: (userData: { name: string; userName: string; email: string, emailConfirmed: boolean }) => void;
 }
 
 interface GoogleUserInfo {
@@ -88,7 +88,8 @@ export default function WelcomePage({ onLogin }: WelcomePageProps) {
             onLogin({
               name: jwtPayload.Name,
               userName: jwtPayload.UserName,
-              email: userInfo.email
+              email: userInfo.email,
+              emailConfirmed: true
             });
 
             navigate('/');

@@ -15,9 +15,9 @@ interface ConfirmEmailInput {
 }
 
 interface GoogleLoginInput {
-  googleUid: string;
+  id: string;
   name: string;
-  userName: string;
+  username: string;
   email: string;  
   googleToken: string;  
 }
@@ -99,7 +99,7 @@ export async function loginUser(email: string, password: string): Promise<LoginR
 }
 
 export async function loginGoogle(googleUid: string, name: string, userName: string, email: string, googleToken: string): Promise<LoginResponse> {  
-  const apiInput: GoogleLoginInput = { googleUid: googleUid, name: name, userName: userName, email: email, googleToken: googleToken };
+  const apiInput: GoogleLoginInput = { id: googleUid, name: name, username: userName, email: email, googleToken: googleToken };
 
   return invokeApi(async () => {
     return await apiClient.post<LoginResponse>('/GoogleLogin', apiInput);
