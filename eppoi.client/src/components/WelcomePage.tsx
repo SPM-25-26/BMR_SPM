@@ -75,7 +75,7 @@ export default function WelcomePage({ onLogin }: WelcomePageProps) {
         console.log('User info:', userInfo);
 
         // Login on Eppoi system with Google data
-        const apiResponse = await loginGoogle(userInfo.id, userInfo.name, userInfo.email, userInfo.email);
+        const apiResponse = await loginGoogle(userInfo.id, userInfo.name, userInfo.email, userInfo.email, userInfo.access_token);
 
         let googleLoginSuccess = false;
         if (apiResponse.success) {
