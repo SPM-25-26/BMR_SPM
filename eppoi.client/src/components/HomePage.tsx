@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LogOut, Search, MessageCircle, X, Send, MapPin, Calendar, Utensils, Landmark, ShoppingBag, Camera } from 'lucide-react';
+import { LogOut, Search, MessageCircle, X, Send, MapPin, Utensils, Landmark, ShoppingBag, Camera } from 'lucide-react';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 import logoImage from 'figma:asset/958defa264c22f47e7a42e2e88ba5be34b61d176.png';
 
@@ -32,21 +32,21 @@ export default function HomePage({ user, onLogout }: HomePageProps) {
       category: 'Monumenti',
       location: 'Firenze Centro',
       distance: '1.2 km',
-      image: 'florence cathedral',
+      image: 'https://images.unsplash.com/photo-1694765368961-2d142bed8154?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmbG9yZW5jZSUyMGNhdGhlZHJhbCUyMGR1b21vfGVufDF8fHx8MTc2NDUyNTIzN3ww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
     },
     {
       title: 'Galleria degli Uffizi',
       category: 'Musei',
       location: 'Piazzale degli Uffizi',
       distance: '800 m',
-      image: 'uffizi gallery',
+      image: 'https://images.unsplash.com/photo-1579748048451-365c9c9bfbc1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx1ZmZpemklMjBnYWxsZXJ5JTIwZmxvcmVuY2V8ZW58MXx8fHwxNzY0NTIxODQxfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
     },
     {
       title: 'Ponte Vecchio',
       category: 'Monumenti',
       location: 'Lungarno',
       distance: '1.5 km',
-      image: 'ponte vecchio florence',
+      image: 'https://images.unsplash.com/photo-1694947713461-13a2f933c827?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwb250ZSUyMHZlY2NoaW8lMjBicmlkZ2V8ZW58MXx8fHwxNzY0NTI1MjM4fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
     },
     {
       title: 'Trattoria Mario',
@@ -292,7 +292,7 @@ function RecommendationCard({ recommendation }: RecommendationCardProps) {
     <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow cursor-pointer">
       <div className="h-36 sm:h-40 md:h-48 bg-gray-200 overflow-hidden">
         <ImageWithFallback
-          src={`https://source.unsplash.com/400x300/?${recommendation.image}`}
+          src={recommendation.image}
           alt={recommendation.title}
           className="w-full h-full object-cover"
         />
