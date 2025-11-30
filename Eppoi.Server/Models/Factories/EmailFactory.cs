@@ -64,7 +64,8 @@ namespace eppoi.Server.Models.Factories
                 
                 using (StreamReader reader = new(stream))
                 {
-                    return reader.ReadToEnd();
+                    // Remove newlines character in order to prevent mail viewers like Gmail to interpret them as HTML <br>
+                    return reader.ReadToEnd().Replace("\n", "").Replace("\r", "");
                 }
             }
         }
