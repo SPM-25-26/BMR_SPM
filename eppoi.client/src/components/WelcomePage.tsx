@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useGoogleLogin, type NonOAuthError } from '@react-oauth/google';
+import { Loader2 } from 'lucide-react';
 import logoImage from 'figma:asset/958defa264c22f47e7a42e2e88ba5be34b61d176.png';
 import { loginGoogle } from '../api/authApi';
 import ErrorModal from './ui/ErrorModal';
@@ -30,6 +31,7 @@ export default function WelcomePage({ onLogin }: WelcomePageProps) {
   const navigate = useNavigate();
   const [errorState, setErrorState] = useState<ErrorState | null>(null);
   const [showErrorModal, setShowErrorModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const closeErrorModal = () => {
     setShowErrorModal(false);
@@ -59,6 +61,7 @@ export default function WelcomePage({ onLogin }: WelcomePageProps) {
 
   const handleGoogleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
+      setIsLoading(true);
       try {
         // Get user data by Google APIs
         const response = await axios.get<GoogleUserInfo>(
@@ -113,6 +116,8 @@ export default function WelcomePage({ onLogin }: WelcomePageProps) {
         const errorObj = getNonAuthErrorMessage({ type: 'unknown' });
         setErrorState(errorObj);
         setShowErrorModal(true);
+      } finally {
+        setIsLoading(false);
       }
     },
     onError: (errorResponse) => {
@@ -131,6 +136,18 @@ export default function WelcomePage({ onLogin }: WelcomePageProps) {
 
   return (
     <div className="flex flex-col min-h-screen bg-[#004d99]">
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-white rounded-2xl p-8 shadow-2xl flex flex-col items-center gap-4">
+            <Loader2 className="w-16 h-16 animate-spin text-[#0066cc]" />
+            <p className="text-[#004d99] text-[18px] font-['Titillium_Web:SemiBold',sans-serif]">
+              Accesso in corso...
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="bg-[#0066cc] px-3 sm:px-4 py-4 sm:py-5 md:py-6 shadow-md">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -196,7 +213,8 @@ export default function WelcomePage({ onLogin }: WelcomePageProps) {
             <div className="space-y-2.5 sm:space-y-3">
               <button
                 onClick={handleGoogleLogin}
-                className="w-full bg-white border-2 border-[#0066cc] text-[#0066cc] hover:bg-[#f0f7ff] py-2.5 sm:py-3 px-4 rounded-lg text-[15px] sm:text-[16px] md:text-[18px] font-['Titillium_Web:SemiBold',sans-serif] transition-colors flex items-center justify-center gap-2"
+                disabled={isLoading}
+                className="w-full bg-white border-2 border-[#0066cc] text-[#0066cc] hover:bg-[#f0f7ff] py-2.5 sm:py-3 px-4 rounded-lg text-[15px] sm:text-[16px] md:text-[18px] font-['Titillium_Web:SemiBold',sans-serif] transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <svg className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24">
                   <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
