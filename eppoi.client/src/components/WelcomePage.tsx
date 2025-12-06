@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useGoogleLogin, type NonOAuthError } from '@react-oauth/google';
+import LoginSocialFacebook from '@greatsumini/react-facebook-login';
 import { Loader2 } from 'lucide-react';
 import logoImage from 'figma:asset/958defa264c22f47e7a42e2e88ba5be34b61d176.png';
 import { loginGoogle } from '../api/authApi';
@@ -22,10 +23,30 @@ interface GoogleUserInfo {
   access_token: string;
 }
 
+interface FacebookUserInfo {
+  id: string;
+  email: string;
+  name: string;
+  picture?: {
+    data: {
+      url: string;
+    };
+  };
+}
+
+interface FacebookAuthResponse {
+  accessToken: string;
+  userID: string;
+  data_access_expiration_time: number;
+  expiresIn: number;
+}
+
 interface ErrorState {
   title: string;
   message: string;
 }
+
+const FACEBOOK_APP_ID = import.meta.env.VITE_FACEBOOK_APP_ID;
 
 export default function WelcomePage({ onLogin }: WelcomePageProps) {
   const navigate = useNavigate();
@@ -134,6 +155,53 @@ export default function WelcomePage({ onLogin }: WelcomePageProps) {
     }
   });
 
+  const handleFacebookAuthSuccess = async (response: FacebookAuthResponse) => {    
+    // This is just the response with the auth token, the real step is on profile success
+    // TODO - IF BACKEND NEEDS ACCESS TOKEN, THIS IS THE PLACE TO GET IT
+    console.log('Facebook login response (token):', response);    
+  };
+
+  const handleFacebookProfileSuccess = async (response: FacebookUserInfo) => {
+    console.log('Facebook login response (profile info):', response);
+    setIsLoading(true);
+
+    try {     
+      
+      // TODO: Implement backend api call
+      
+      
+      // To remove when integrated
+      setErrorState({
+        title: 'Login Facebook',
+        message: 'Integrazione Facebook completata! Ora devi implementare la chiamata API lato server.'
+      });
+      setShowErrorModal(true);      
+
+    } catch (error) {
+      console.error('Errore nel login Facebook:', error);
+      setErrorState({
+        title: 'Errore di Accesso',
+        message: 'Si è verificato un errore durante l\'accesso con Facebook. Riprova tra qualche minuto.'
+      });
+      setShowErrorModal(true);
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  const handleFacebookError = (error: any) => {
+    console.error('Facebook login error:', error);
+    if (error?.status == 'loginCancelled') {
+      // No real error, just cancelled
+      return;
+    }
+    setErrorState({
+      title: 'Errore Facebook',
+      message: 'La finestra di accesso a Facebook è stata chiusa o si è verificato un errore. Riprova.'
+    });
+    setShowErrorModal(true);
+  };
+
   return (
     <div className="flex flex-col min-h-screen bg-[#004d99]">
       {/* Loading Overlay */}
@@ -223,7 +291,30 @@ export default function WelcomePage({ onLogin }: WelcomePageProps) {
                   <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                 </svg>
                 <span className="truncate">Continua con Google</span>
-              </button>              
+              </button>
+              
+              {/* Facebook Login Button with Custom Render */}
+              <LoginSocialFacebook
+                appId={FACEBOOK_APP_ID}
+                onSuccess={handleFacebookAuthSuccess}
+                onFail={handleFacebookError}
+                onProfileSuccess={handleFacebookProfileSuccess}
+                fields="id,name,email,picture"
+                scope="public_profile,email"
+                render={({ onClick }) => (
+                  <button
+                    disabled={isLoading}
+                    onClick={onClick}
+                    className="w-full bg-white border-2 border-[#0066cc] text-[#0066cc] hover:bg-[#f0f7ff] py-2.5 sm:py-3 px-4 rounded-lg text-[15px] sm:text-[16px] md:text-[18px] font-['Titillium_Web:SemiBold',sans-serif] transition-colors flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24">
+                      <path fill="#4267B2" d="M22.675 0H1.325C.593 0 0 .593 0 1.325v21.351C0 23.407.593 24 1.325 24h10.306v-8.142h-2.555v-2.724h2.555v-2.021c0-2.481 1.588-3.677 3.168-3.677 1.017 0 1.858.087 2.316.136v2.461h-1.667c-1.237 0-1.422.574-1.422 1.402v1.983h2.888l-.419 2.898h-2.469v7.083h4.495c.248 0 .447-.08.615-.25l2.688-2.688C23.582 18.596 24 17.114 24 15.387V1.325C24.001.593 23.407 0 22.675 0z" />
+                    </svg>
+                    <span className="truncate">Continua con Facebook</span>
+                  </button>
+                )}
+              >
+              </LoginSocialFacebook>
             </div>
           </div>
         </div>
