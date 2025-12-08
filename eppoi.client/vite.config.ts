@@ -136,9 +136,12 @@ export default defineConfig({
     },
   server: {
         proxy: {
-            '^/api/Authentication': {
+            '^/api': {
                 target,
-                secure: false
+                secure: false,
+                headers: {
+                    'ngrok-skip-browser-warning': '1'
+                }
             }
         },
         port: parseInt(env.DEV_SERVER_PORT || '51720'),

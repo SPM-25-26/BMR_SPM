@@ -1,7 +1,10 @@
-import { useState } from 'react';
-import { LogOut, Search, MessageCircle, X, Send, MapPin, Utensils, Landmark, ShoppingBag, Camera } from 'lucide-react';
-import { ImageWithFallback } from './figma/ImageWithFallback';
+import { useState, useEffect } from 'react';
+import { LogOut, MessageCircle, X, Send, MapPin, Calendar, Navigation, Newspaper, Briefcase, ChevronLeft, ChevronRight } from 'lucide-react';
 import logoImage from 'figma:asset/958defa264c22f47e7a42e2e88ba5be34b61d176.png';
+import { getMunicipalityInfo, type MunicipalityData } from '../api/infoApi';
+import LoadingSpinner from './ui/LoadingSpinner';
+import ErrorModal from './ui/ErrorModal';
+import { getMediaUrl } from '../config/constants';
 
 interface HomePageProps {
   user: {
@@ -12,57 +15,92 @@ interface HomePageProps {
   onLogout: () => void;
 }
 
+interface ErrorState {
+  title: string;
+  message: string;
+}
+
 export default function HomePage({ user, onLogout }: HomePageProps) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedInterests, setSelectedInterests] = useState<string[]>(['Monumenti', 'Musei']);
+  const [selectedInterests, setSelectedInterests] = useState<string[]>(['Punti di interesse']);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState<Array<{ text: string; isUser: boolean }>>([]);
   const [chatInput, setChatInput] = useState('');
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [municipalityData, setMunicipalityData] = useState<MunicipalityData | null>(null);
+  const [errorState, setErrorState] = useState<ErrorState | null>(null);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+
+  const cupraImages = [
+    getMediaUrl('/Media/Organization/mobile-home-00356330449-8569dd20-ac7c-48e7-a50b-acbe25da5c41.webp'),
+    getMediaUrl('/Media/Organization/mobile-home-00356330449-e6aaed31-1509-40d2-baf3-3c458900af03.webp'),
+    getMediaUrl('/Media/Organization/mobile-home-00356330449-435e0456-03cd-45d9-892d-bfc96c649ffd.webp'),
+    getMediaUrl('/Media/Organization/mobile-home-00356330449-aad1daeb-9faa-43a4-ad51-b028016766ae.webp'),
+  ];
+  
+  const nextSlide = () => {
+    setCurrentSlide((prev) => (prev + 1) % cupraImages.length);
+  };
+
+  const prevSlide = () => {
+    setCurrentSlide((prev) => (prev - 1 + cupraImages.length) % cupraImages.length);
+  };
 
   const interests = [
-    { name: 'Monumenti', icon: Landmark },
-    { name: 'Musei', icon: Camera },
-    { name: 'Shopping', icon: ShoppingBag },
-    { name: 'Food', icon: Utensils },
+    { name: 'Punti di interesse', icon: Navigation },
+    { name: 'Eventi', icon: Calendar },
+    { name: 'Articoli', icon: Newspaper },
+    { name: 'Operatori economici', icon: Briefcase },
   ];
 
-  const recommendations = [
-    {
-      title: 'Duomo di Firenze',
-      category: 'Monumenti',
-      location: 'Firenze Centro',
-      distance: '1.2 km',
-      image: 'https://images.unsplash.com/photo-1694765368961-2d142bed8154?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmbG9yZW5jZSUyMGNhdGhlZHJhbCUyMGR1b21vfGVufDF8fHx8MTc2NDUyNTIzN3ww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
-    },
-    {
-      title: 'Galleria degli Uffizi',
-      category: 'Musei',
-      location: 'Piazzale degli Uffizi',
-      distance: '800 m',
-      image: 'https://images.unsplash.com/photo-1579748048451-365c9c9bfbc1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHx1ZmZpemklMjBnYWxsZXJ5JTIwZmxvcmVuY2V8ZW58MXx8fHwxNzY0NTIxODQxfDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
-    },
-    {
-      title: 'Ponte Vecchio',
-      category: 'Monumenti',
-      location: 'Lungarno',
-      distance: '1.5 km',
-      image: 'https://images.unsplash.com/photo-1694947713461-13a2f933c827?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwb250ZSUyMHZlY2NoaW8lMjBicmlkZ2V8ZW58MXx8fHwxNzY0NTI1MjM4fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
-    },
-    {
-      title: 'Trattoria Mario',
-      category: 'Food',
-      location: 'Via Rosina',
-      distance: '500 m',
-      image: 'italian restaurant interior',
-    },
-  ];
+  const closeErrorModal = () => {
+    setShowErrorModal(false);
+    setErrorState(null);
+  };
+
+  const handleRetry = async () => {
+    closeErrorModal();
+    await loadMunicipalityData();
+  };
+
+  const loadMunicipalityData = async () => {
+    setIsLoading(true);
+    try {
+      const response = await getMunicipalityInfo();
+      
+      if (response.success && response.result) {
+        setMunicipalityData(response.result);
+      } else {
+        setErrorState({
+          title: 'Errore nel caricamento',
+          message: 'Non è stato possibile caricare i dati del comune. Riprova.'
+        });
+        setShowErrorModal(true);
+      }
+    } catch (error) {
+      console.error('Errore nel caricamento dei dati del comune:', error);
+      setErrorState({
+        title: 'Errore Server',
+        message: 'Si è verificato un errore durante il caricamento dei dati. Il server non è attualmente disponibile. Riprova tra qualche minuto.'
+      });
+      setShowErrorModal(true);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadMunicipalityData();
+  }, []);
 
   const toggleInterest = (interest: string) => {
-    setSelectedInterests(prev =>
-      prev.includes(interest)
-        ? prev.filter(i => i !== interest)
-        : [...prev, interest]
-    );
+    // Cannot deselect anything
+    if (selectedInterests.includes(interest)) {
+      return;
+    }
+    
+    // Current selection change
+    setSelectedInterests([interest]);
   };
 
   const handleSendMessage = () => {
@@ -84,9 +122,83 @@ export default function HomePage({ user, onLogout }: HomePageProps) {
     }
   };
 
-  const filteredRecommendations = recommendations.filter(rec =>
-    selectedInterests.length === 0 || selectedInterests.includes(rec.category)
-  );
+  const getFilteredContent = () => {
+    if (!municipalityData) return [];
+
+    if (selectedInterests.includes('Punti di interesse')) {
+      return municipalityData.poi.map(item => ({
+        ...item,
+        title: item.entityName,
+        category: item.badgeText,
+        location: item.address || 'Cupra Marittima',
+        image: getMediaUrl(item.imagePath),
+        date: undefined
+      }));
+    } else if (selectedInterests.includes('Eventi')) {
+      return municipalityData.events.map(item => ({
+        ...item,
+        title: item.entityName,
+        category: item.badgeText,
+        location: item.address || 'Cupra Marittima',
+        image: getMediaUrl(item.imagePath),
+        date: item.date
+      }));
+    } else if (selectedInterests.includes('Articoli')) {
+      return municipalityData.articles.map(item => ({
+        ...item,
+        title: item.entityName,
+        category: item.badgeText,
+        location: item.address || '',
+        image: getMediaUrl(item.imagePath),
+        date: undefined
+      }));
+    } else if (selectedInterests.includes('Operatori economici')) {
+      return municipalityData.organizations.map(item => ({
+        ...item,
+        title: item.entityName,
+        category: item.badgeText,
+        location: item.address || 'Cupra Marittima',
+        image: getMediaUrl(item.imagePath),
+        date: undefined
+      }));
+    }
+    return [];
+  };
+
+  const filteredContent = getFilteredContent();
+
+  useEffect(() => {
+    let touchStartY = 0;
+    let touchEndY = 0;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      touchStartY = e.changedTouches[0].screenY;
+    };
+
+    const handleTouchEnd = (e: TouchEvent) => {
+      touchEndY = e.changedTouches[0].screenY;
+      handleSwipe();
+    };
+
+    const handleSwipe = () => {
+      // Swipe down (pull-to-refresh gesture)
+      if (touchEndY > touchStartY + 50) {
+        loadMunicipalityData();
+      }
+    };
+
+    document.addEventListener('touchstart', handleTouchStart);
+    document.addEventListener('touchend', handleTouchEnd);
+
+    return () => {
+      document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, []);
+
+  if (isLoading) {
+    return <LoadingSpinner message="Caricamento dati in corso..." />;
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-[#f5f5f5]">
@@ -111,31 +223,58 @@ export default function HomePage({ user, onLogout }: HomePageProps) {
           <div className="mb-5 sm:mb-6 md:mb-8">
             <h2 className="text-[#004d99] text-[22px] sm:text-[24px] md:text-[32px] font-['Titillium_Web:Bold',sans-serif] mb-1 sm:mb-2">
               Ciao {user.name}!
-            </h2>
-            <p className="text-[#004080] text-[15px] sm:text-[16px] md:text-[18px] font-['Titillium_Web:Regular',sans-serif]">
-              Dove vuoi andare oggi?
-            </p>
+            </h2>            
+
+            {/* Location Notice */}
+            <div className="bg-white rounded-lg shadow-md p-3 sm:p-4 md:p-5 flex items-center gap-3 sm:gap-4">
+              <img
+                src={getMediaUrl('/Media/Organization/logo-00356330449.png')}
+                alt="Stemma Cupra Marittima"
+                className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 object-contain"
+              />
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-[#0066cc]" />
+                  <p className="text-[#004080] text-[14px] sm:text-[15px] md:text-[16px] font-['Titillium_Web:SemiBold',sans-serif]">
+                    Stai visitando
+                  </p>
+                </div>
+                <h3 className="text-[#004d99] text-[18px] sm:text-[20px] md:text-[24px] font-['Titillium_Web:Bold',sans-serif]">
+                  Cupra Marittima
+                </h3>
+              </div>
+            </div>
           </div>
 
-          {/* Search Bar */}
+          {/* Cupra Carousel */}
           <div className="mb-5 sm:mb-6 md:mb-8">
-            <div className="relative">
-              <Search className="absolute left-3 sm:left-3 md:left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Cerca luoghi, eventi, attività..."
-                className="w-full pl-9 sm:pl-10 md:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3 md:py-4 bg-white border-2 border-gray-200 rounded-lg focus:border-[#0066cc] focus:outline-none text-[14px] sm:text-[14px] md:text-[16px] font-['Titillium_Web:Regular',sans-serif] shadow-sm"
-              />
+            <div className="bg-white rounded-lg shadow-md overflow-hidden">
+              <div className="relative">
+                <div className="h-48 sm:h-56 md:h-64 lg:h-80">
+                  <img
+                    src={cupraImages[currentSlide]}
+                    alt={`Cupra Marittima ${currentSlide + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <button
+                  onClick={prevSlide}
+                  className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white p-2 rounded-full shadow-md"
+                >
+                  <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8" />
+                </button>
+                <button
+                  onClick={nextSlide}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white p-2 rounded-full shadow-md"
+                >
+                  <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8" />
+                </button>
+              </div>
             </div>
           </div>
 
           {/* Interests Filter */}
           <div className="mb-5 sm:mb-6 md:mb-8">
-            <h3 className="text-[#004080] text-[16px] sm:text-[18px] md:text-[20px] font-['Titillium_Web:SemiBold',sans-serif] mb-3 sm:mb-3 md:mb-4">
-              I tuoi interessi
-            </h3>
             <div className="flex flex-wrap gap-2 sm:gap-2 md:gap-3">
               {interests.map((interest) => {
                 const Icon = interest.icon;
@@ -160,11 +299,8 @@ export default function HomePage({ user, onLogout }: HomePageProps) {
 
           {/* Recommendations */}
           <div>
-            <h3 className="text-[#004080] text-[18px] sm:text-[20px] md:text-[24px] font-['Titillium_Web:Bold',sans-serif] mb-3 sm:mb-3 md:mb-4">
-              Raccomandazioni per te
-            </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
-              {filteredRecommendations.map((rec, index) => (
+              {filteredContent.map((rec, index) => (
                 <RecommendationCard key={index} recommendation={rec} />
               ))}
             </div>
@@ -273,6 +409,19 @@ export default function HomePage({ user, onLogout }: HomePageProps) {
           </div>
         </div>
       )}
+
+      {/* Error Modal */}
+      {errorState && (
+        <ErrorModal
+          isOpen={showErrorModal}
+          title={errorState.title}
+          message={errorState.message}
+          onClose={closeErrorModal}
+          onRetry={handleRetry}
+          retryLabel="Riprova"
+          cancelLabel="Chiudi"
+        />
+      )}
     </div>
   );
 }
@@ -282,8 +431,8 @@ interface RecommendationCardProps {
     title: string;
     category: string;
     location: string;
-    distance: string;
     image: string;
+    date?: string;
   };
 }
 
@@ -291,7 +440,7 @@ function RecommendationCard({ recommendation }: RecommendationCardProps) {
   return (
     <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow cursor-pointer">
       <div className="h-36 sm:h-40 md:h-48 bg-gray-200 overflow-hidden">
-        <ImageWithFallback
+        <img
           src={recommendation.image}
           alt={recommendation.title}
           className="w-full h-full object-cover"
@@ -302,19 +451,26 @@ function RecommendationCard({ recommendation }: RecommendationCardProps) {
           <span className="bg-[#bfdfff] text-[#004080] px-2 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-[11px] md:text-[12px] font-['Titillium_Web:SemiBold',sans-serif]">
             {recommendation.category}
           </span>
-          <span className="text-[#0066cc] text-[12px] sm:text-[13px] md:text-[14px] font-['Titillium_Web:SemiBold',sans-serif]">
-            {recommendation.distance}
-          </span>
+          {recommendation.date && (
+            <div className="flex items-center gap-1 text-[#0066cc]">
+              <Calendar className="w-3 h-3 sm:w-3 sm:h-3 md:w-4 md:h-4" />
+              <span className="text-[10px] sm:text-[11px] md:text-[12px] font-['Titillium_Web:SemiBold',sans-serif]">
+                {recommendation.date}
+              </span>
+            </div>
+          )}
         </div>
         <h4 className="text-[#004080] text-[15px] sm:text-[16px] md:text-[18px] font-['Titillium_Web:Bold',sans-serif] mb-1.5 sm:mb-2">
           {recommendation.title}
         </h4>
-        <div className="flex items-center gap-1 text-gray-600">
-          <MapPin className="w-3 h-3 sm:w-3 sm:h-3 md:w-4 md:h-4" />
-          <span className="text-[12px] sm:text-[13px] md:text-[14px] font-['Titillium_Web:Regular',sans-serif]">
-            {recommendation.location}
-          </span>
-        </div>
+        {recommendation.location && (
+          <div className="flex items-center gap-1 text-gray-600">
+            <MapPin className="w-3 h-3 sm:w-3 sm:h-3 md:w-4 md:h-4" />
+            <span className="text-[12px] sm:text-[13px] md:text-[14px] font-['Titillium_Web:Regular',sans-serif]">
+              {recommendation.location}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );

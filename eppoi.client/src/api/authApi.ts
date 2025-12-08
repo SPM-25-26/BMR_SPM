@@ -1,12 +1,13 @@
 import axios from 'axios';
+import { invokeApi, ApiErrorWithResponse, type ApiResponse } from './apiUtils';
 
 const API_BASE = '/api/Authentication';
 
 const apiClient = axios.create({
-    baseURL: API_BASE,
-    headers: {
-        'Content-Type': 'application/json',
-    },
+  baseURL: API_BASE,
+  headers: {
+    'Content-Type': 'application/json',
+  },
 });
 
 interface ConfirmEmailInput {
@@ -21,9 +22,9 @@ interface GoogleLoginInput {
   email: string;  
   googleToken: string;  
 }
-interface LoginResponse {
-    success: boolean;
-    result: string;
+
+export interface LoginResponse extends ApiResponse {
+  result: string;
 }
 
 interface PasswordResetInput {
@@ -33,53 +34,26 @@ interface PasswordResetInput {
 }
 
 interface RegisterInput {
-    name: string;
-    userName: string;
-    email: string;
-    password: string;
+  name: string;
+  userName: string;
+  email: string;
+  password: string;
 }
 
 interface RegisterError {
-    code: string;
-    description: string;
+  code: string;
+  description: string;
 }
 
-interface RegisterResponse {
-    success: boolean;
-    result: {
-        succeeded: boolean;
-        errors?: RegisterError[];
-    };
+export interface RegisterResponse extends ApiResponse {
+  result: {
+    succeeded: boolean;
+    errors?: RegisterError[];
+  };
 }
 
-export class ApiErrorWithResponse extends Error {
-  constructor(
-    message: string,
-    public response?: RegisterResponse,
-    public statusCode?: number
-  ) {
-    super(message);
-    this.name = 'ApiErrorWithResponse';
-  }
-}
-
-const invokeApi = async <T,>(callee: () => Promise<{ data: T }>, msgErr: string): Promise<T> => {
-  try {
-    const response = await callee();
-    return response.data;
-  } catch (error) {
-    if(axios.isAxiosError(error)) {
-      const statusCode = error.response?.status;
-      const responseData = error.response?.data as RegisterResponse | undefined;
-      throw new ApiErrorWithResponse(
-        error.response?.data?.message || msgErr,
-        responseData,
-        statusCode
-      );
-    }
-    throw new Error('Errore API');
-  }
-}
+// Esporta ApiErrorWithResponse per compatibilità con codice esistente
+export { ApiErrorWithResponse };
 
 export async function confirmEmail(userId: string, token: string): Promise<LoginResponse> {
   const apiInput: ConfirmEmailInput = { id: userId, token: token };
@@ -122,6 +96,6 @@ export async function resetPassword(userId: string, token: string, password: str
 
 export async function registerUser(userData: RegisterInput): Promise<RegisterResponse> {
   return invokeApi(async () => {
-    return await apiClient.post<LoginResponse>('/SignUp', userData);
+    return await apiClient.post<RegisterResponse>('/SignUp', userData);
   }, 'Errore durante la registrazione');        
 }
