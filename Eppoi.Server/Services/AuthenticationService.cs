@@ -1,17 +1,11 @@
-﻿using Azure.Core;
-using eppoi.Server.Models;
-using eppoi.Server.Models.Dto;
+﻿using eppoi.Models.Entities;
+using eppoi.Server.Models.Authentication;
+using eppoi.Server.Models.Authentication.Dto;
 using eppoi.Server.Models.Factories;
-using Eppoi.Server.Models;
-using Eppoi.Server.Models.Dto;
 using Eppoi.Server.Services;
-using Google.Apis.Auth;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.EntityFrameworkCore.Query;
 using Newtonsoft.Json;
-using System.ComponentModel;
-using System.Reflection.Metadata.Ecma335;
-using System.Security.Claims;
+
 
 namespace eppoi.Server.Services
 {
@@ -22,6 +16,7 @@ namespace eppoi.Server.Services
         private readonly SmtpService _smtpService = smtpService;
 
         private readonly string _googleUserInfoUrl = "https://www.googleapis.com/oauth2/v3/userinfo";
+        private readonly string _googleMapsInfoUrl = "https://roads.googleapis.com/v1/snapToRoads"; // ?lat,long&key=googlekey
 
         public async Task<IdentityResult> CreateUser(UserDto request)
         {

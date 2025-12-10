@@ -1,10 +1,10 @@
 ﻿using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
-using Eppoi.Server.Models;
 using Eppoi.Server.Options;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using eppoi.Models.Entities;
 
 
 namespace Eppoi.Server.Services
@@ -20,7 +20,7 @@ namespace Eppoi.Server.Services
                 List<Claim> claims =
                 [
                     new Claim("Name", user.Name),
-                    new Claim("UserName", user.UserName),
+                    new Claim("UserName", user.UserName!),
                 ];
                 var token = GetJwtSecurityToken(claims);
                 return new JwtSecurityTokenHandler().WriteToken(token);

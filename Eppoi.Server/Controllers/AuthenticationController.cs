@@ -1,9 +1,8 @@
-﻿using eppoi.Server.Models.Dto;
+﻿using eppoi.Server.Models.Authentication;
+using eppoi.Server.Models.Authentication.Dto;
 using eppoi.Server.Models.Factories;
 using eppoi.Server.Models.Responses;
 using eppoi.Server.Services;
-using Eppoi.Server.Models;
-using Eppoi.Server.Models.Dto;
 using Eppoi.Server.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Google;

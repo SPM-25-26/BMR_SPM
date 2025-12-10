@@ -1,4 +1,4 @@
-﻿using eppoi.Server.Models;
+﻿using eppoi.Server.Models.Authentication;
 using eppoi.Server.Models.Factories;
 using eppoi.Server.Options;
 using Microsoft.AspNetCore.Mvc;
@@ -22,7 +22,7 @@ namespace eppoi.Server.Services
                 EnableSsl = true
             };
 
-            client.Send("test@test.it", request.email, request.title, request.body);
+            client.Send("test@test.it", request.Reciever, request.Title, request.Body);
             System.Console.WriteLine("Sent");
         }
     }

@@ -1,15 +1,14 @@
+using eppoi.Models.Data;
+using eppoi.Models.Entities;
 using eppoi.Server.Models.Factories;
 using eppoi.Server.Options;
 using eppoi.Server.Services;
-using Eppoi.Server.Data;
-using Eppoi.Server.Models;
 using Eppoi.Server.Options;
 using Eppoi.Server.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Net;

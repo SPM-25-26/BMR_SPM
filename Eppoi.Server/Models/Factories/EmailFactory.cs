@@ -1,7 +1,6 @@
-﻿using eppoi.Server.Models.Responses;
-using Eppoi.Server.Models;
+﻿using eppoi.Models.Entities;
+using eppoi.Server.Models.Authentication;
 using System.Reflection;
-using System.Text;
 
 namespace eppoi.Server.Models.Factories
 {
@@ -16,9 +15,9 @@ namespace eppoi.Server.Models.Factories
 
             Email email = new()
             {
-                email = user.Email!,
-                title = "Welcome to Eppoi!",
-                body = body
+                Reciever = user.Email!,
+                Title = "Welcome to Eppoi!",
+                Body = body
             };
             return email;
         }
@@ -32,9 +31,9 @@ namespace eppoi.Server.Models.Factories
 
             Email email = new()
             {
-                email = user.Email!,
-                title = "Eppoi Email Confirmation",
-                body = body
+                Reciever = user.Email!,
+                Title = "Eppoi Email Confirmation",
+                Body = body
             };
             return email;
         }
@@ -48,26 +47,21 @@ namespace eppoi.Server.Models.Factories
 
             Email email = new()
             {
-                email = user.Email!,
-                title = "Eppoi Password Reset",
-                body = body
+                Reciever = user.Email!,
+                Title = "Eppoi Password Reset",
+                Body = body
             };
             return email;
         }
 
         private static string LoadEmbeddedTemplate(string resourceName)
         {
-            using (Stream? stream = ExecutingAssembly.GetManifestResourceStream(resourceName))
-            {
-                if (stream == null)
-                    throw new FileNotFoundException($"Template not found: {resourceName}");
-                
-                using (StreamReader reader = new(stream))
-                {
-                    // Remove newlines character in order to prevent mail viewers like Gmail to interpret them as HTML <br>
-                    return reader.ReadToEnd().Replace("\n", "").Replace("\r", "");
-                }
-            }
+            using Stream? stream = ExecutingAssembly.GetManifestResourceStream(resourceName) 
+                ?? throw new FileNotFoundException($"Template not found: {resourceName}");
+            using StreamReader reader = new(stream);
+
+            // Remove newlines character in order to prevent mail viewers like Gmail to interpret them as HTML <br>
+            return reader.ReadToEnd().Replace("\n", "").Replace("\r", "");
         }
     }
 }

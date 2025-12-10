@@ -39,10 +39,17 @@
     <ProjectReference Include="..\eppoi.client\eppoi.client.esproj">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
+    <ProjectReference Include="..\Models\eppoi.Models.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="EmailTemplates/**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Models\Authentication\EmailTemplates\Confirmation.html" />
+    <EmbeddedResource Include="Models\Authentication\EmailTemplates\PasswordReset.html" />
+    <EmbeddedResource Include="Models\Authentication\EmailTemplates\Registration.html" />
   </ItemGroup>
 
 </Project>

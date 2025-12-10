@@ -3,11 +3,22 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net9.0</TargetFramework>
+    <UserSecretsId>f6b14ae3-86ad-4acf-8278-4b02cb40de3a</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="appsettings.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
 	<PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.11" />
-    <ProjectReference Include="..\Eppoi.Server\Eppoi.Server.csproj" />
+    <ProjectReference Include="..\Models\eppoi.Models.csproj" />
   </ItemGroup>
 
   <!-- Altri pacchetti NuGet se necessari -->
