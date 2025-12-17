@@ -3,6 +3,8 @@ using eppoi.Models.Entities;
 using eppoi.Server.Models.Factories;
 using eppoi.Server.Options;
 using eppoi.Server.Services;
+using eppoi.Server.Services.Infrastructure;
+using eppoi.Server.Services.Infrastructure.Repositories;
 using Eppoi.Server.Options;
 using Eppoi.Server.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -64,6 +66,12 @@ builder.Services.AddDbContext<ApplicationDBContext>(options =>
 });
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
+builder.Services.AddScoped<IArticlesRepository, ArticlesRepository>();
+builder.Services.AddScoped<IEventsRepository, EventsRepository>();
+builder.Services.AddScoped<IOrganizationsRepository, OrganizationsRepository>();
+builder.Services.AddScoped<IPointOfInterestRepository, PointOfInterestRepository>();
+builder.Services.AddScoped<ICategoriesRepository, CategoriesRepository>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 builder.Services
     .AddIdentityCore<User>(options =>
@@ -114,6 +122,7 @@ builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection("Authen
 builder.Services.AddScoped<SmtpService>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<AuthenticationService>();
+builder.Services.AddScoped<ILocalInfoService, LocalInfoService>();
 
 
 var app = builder.Build();
@@ -132,8 +141,9 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseRouting();
 
-app.UseAuthorization();
+// UseAuthentication goes before UseAuthorization, otherwise methods will always respond with 401
 app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllers();
 
