@@ -29,5 +29,15 @@ namespace Eppoi.Server.Controllers
             _logger.LogInformation("Discover list of type {DiscoverType} generated", type);
             return Ok(ResponseFactory.WithSuccess(discoverList));
         }
+
+        [HttpGet("GetPOIById")]
+        [Authorize]
+        public ActionResult GetPOIById([FromQuery] string id)
+        {
+            var discoverList = _localInfoService.GetPoiByIdAsync(id);
+            _logger.LogInformation("POI with id {Id} returned", id);
+            return Ok(ResponseFactory.WithSuccess(discoverList));
+        }
+        
     }
 }

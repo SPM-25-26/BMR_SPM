@@ -10,5 +10,10 @@ namespace eppoi.Server.Services.Infrastructure.Repositories
         {
             return await _context.Set<TEntity>().ToListAsync();
         }
+
+        public async Task<TEntity> GetAsync(string? id)
+        {
+            return await _context.Set<TEntity>().FindAsync(id);
+        }
     }
 }

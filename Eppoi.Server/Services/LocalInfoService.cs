@@ -5,11 +5,13 @@ using eppoi.Models.Entities.Import.Events;
 using eppoi.Models.Entities.Import.Organizations;
 using eppoi.Server.Models.Dtos;
 using eppoi.Server.Services.Infrastructure;
+using Eppoi.Server.Controllers;
 using Eppoi.Server.Models.LocalInfo.Enums;
+using eppoi.Server.Exceptions;
 
 namespace eppoi.Server.Services
 {
-    public class LocalInfoService(IUnitOfWork unitOfWork) : ILocalInfoService
+    public class LocalInfoService(ILogger<LocalInfoController> _logger, IUnitOfWork unitOfWork) : ILocalInfoService
     {
         public async Task<IEnumerable<CategoryDto>> GetCategories()
         {
@@ -98,6 +100,30 @@ namespace eppoi.Server.Services
 
             return result;
         }
-        
+
+        public async Task<PointOfInterestDto> GetPoiByIdAsync(string id)
+        {
+            ArtNature point = await unitOfWork.PointOfInterests.GetAsync(id);
+            
+            if (point is null)
+            {
+                _logger.LogWarning("Point of Interest with ID {id} not found.", id);
+                throw new NotFoundException($"Point of Interest with ID {id} not found.");
+            }
+
+            return new PointOfInterestDto()
+            {
+                EntityId = point.Id,
+                EntityName = point.Name,
+                ImagePath = point.ImagePath,
+                BadgeText = point.Type,
+                Description = point.Description,
+                Category = point.Category,
+                Address = point.Address,
+                Latitude = point.Latitude,
+                Longitude = point.Longitude,
+                Gallery = point.Gallery ?? Array.Empty<string>()
+            };
+        }
     }
 }

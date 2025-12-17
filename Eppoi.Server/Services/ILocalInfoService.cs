@@ -7,5 +7,6 @@ namespace eppoi.Server.Services
     {
         Task<IEnumerable<CategoryDto>> GetCategories();
         Task<IEnumerable<DiscoverItemDto>> GetDiscoverListByType(DiscoverType type);
+        Task<PointOfInterestDto> GetPoiByIdAsync(string id);
     }
 }
