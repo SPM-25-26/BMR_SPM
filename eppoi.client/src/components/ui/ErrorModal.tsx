@@ -5,7 +5,7 @@ interface ErrorModalProps {
   title: string;
   message: string;
   onClose: () => void;
-  onRetry: () => void;
+  onRetry?: () => void;
   retryLabel?: string;
   cancelLabel?: string;
   isWarning?: boolean;
@@ -53,12 +53,14 @@ export default function ErrorModal({
 
         {/* Action Buttons */}
         <div className="flex flex-col gap-3">
-          <button
-            onClick={onRetry}
-            className="w-full bg-[#0066cc] hover:bg-[#004d99] text-white py-3 px-6 rounded-lg text-[16px] sm:text-[18px] font-['Titillium_Web:SemiBold',sans-serif] transition-colors"
-          >
-            {retryLabel}
-          </button>
+          {onRetry && (
+            <button
+              onClick={onRetry}
+              className="w-full bg-[#0066cc] hover:bg-[#004d99] text-white py-3 px-6 rounded-lg text-[16px] sm:text-[18px] font-['Titillium_Web:SemiBold',sans-serif] transition-colors"
+            >
+              {retryLabel}
+            </button>
+          )}
           <button
             onClick={onClose}
             className="w-full bg-white border-2 border-gray-300 text-gray-600 hover:bg-gray-50 py-3 px-6 rounded-lg text-[16px] sm:text-[18px] font-['Titillium_Web:SemiBold',sans-serif] transition-colors"

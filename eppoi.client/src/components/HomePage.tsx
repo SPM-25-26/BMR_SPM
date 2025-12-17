@@ -48,6 +48,7 @@ export default function HomePage({ user, onLogout }: HomePageProps) {
   const [discoveryData, setDiscoveryData] = useState<Array<DiscoverItem> | null>(null);
   const [errorState, setErrorState] = useState<ErrorState | null>(null);
   const [showErrorModal, setShowErrorModal] = useState(false);
+  const [showWorkInProgressModal, setShowWorkInProgressModal] = useState(false);
   
   const dataLoadingRef = useRef(false);
 
@@ -81,6 +82,14 @@ export default function HomePage({ user, onLogout }: HomePageProps) {
   const closeErrorModal = () => {
     setShowErrorModal(false);
     setErrorState(null);
+  };
+
+  const handleCardClick = () => {
+    setShowWorkInProgressModal(true);
+  };
+
+  const closeWorkInProgressModal = () => {
+    setShowWorkInProgressModal(false);
   };
 
   const cachedCategories = useRef<Array<Category> | null>(null);
@@ -371,7 +380,7 @@ export default function HomePage({ user, onLogout }: HomePageProps) {
           <div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
               {filteredContent.map((rec, index) => (
-                <RecommendationCard key={index} recommendation={rec} />
+                <RecommendationCard key={index} recommendation={rec} onClick={handleCardClick} />
               ))}
             </div>
           </div>
@@ -492,6 +501,15 @@ export default function HomePage({ user, onLogout }: HomePageProps) {
           cancelLabel="Chiudi"
         />
       )}
+
+      {/* Work In Progress Modal */}
+      <ErrorModal
+        isOpen={showWorkInProgressModal}
+        title="Work in progress"
+        message="Coming soon"
+        onClose={closeWorkInProgressModal}
+        cancelLabel="Chiudi"
+      />
     </div>
   );
 }
@@ -504,11 +522,12 @@ interface RecommendationCardProps {
     image: string;
     date?: string;
   };
+  onClick: () => void;
 }
 
-function RecommendationCard({ recommendation }: RecommendationCardProps) {
+function RecommendationCard({ recommendation, onClick }: RecommendationCardProps) {
   return (
-    <div className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow cursor-pointer">
+    <div onClick={onClick} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow cursor-pointer">
       <div className="h-36 sm:h-40 md:h-48 bg-gray-200 overflow-hidden">
         <img
           src={recommendation.image}
@@ -530,7 +549,7 @@ function RecommendationCard({ recommendation }: RecommendationCardProps) {
             </div>
           )}
         </div>
-        <h4 className="text-[#004080] text-[15px] sm:text-[16px] md:text-[18px] font-['Titillium_Web:Bold',sans-serif] mb-1.5 sm:mb-2">
+        <h4 className="text-[#004080] text-[15px] sm:text-[16px] md:text-[18px] font-['Titillium_Web:Bold',sans-serif] mb-1.5 sm:mb-2 overflow-hidden text-ellipsis line-clamp-2">
           {recommendation.title}
         </h4>
         {recommendation.location && (
