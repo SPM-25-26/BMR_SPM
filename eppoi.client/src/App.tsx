@@ -1,9 +1,10 @@
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import ForgotPasswordPage from './components/ForgotPasswordPage';
 import EmailVerification from './components/EmailVerification';
 import EmailVerificationRequired from './components/EmailVerificationRequired';
+import DetailPage from './components/DetailPage';
 import WelcomePage from './components/WelcomePage';
 import LoginPage from './components/LoginPage';
 import RegisterPage from './components/RegisterPage';
@@ -147,6 +148,14 @@ export default function App() {
                         element={
                             <ProtectedRoute user={user}>
                                 <HomePage user={user} onLogout={handleLogout} />
+                            </ProtectedRoute>
+                        }
+                    />
+                    <Route
+                        path="/detail"
+                        element={
+                            <ProtectedRoute user={user}>
+                              <DetailPage onLogout={handleLogout} />
                             </ProtectedRoute>
                         }
                     />

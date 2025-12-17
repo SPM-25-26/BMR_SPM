@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { LogOut, MessageCircle, X, Send, MapPin, Calendar, Navigation, Newspaper, Briefcase, ChevronLeft, ChevronRight } from 'lucide-react';
 import logoImage from 'figma:asset/958defa264c22f47e7a42e2e88ba5be34b61d176.png';
 import { getCategories, getDiscoverList, type Category, type DiscoverItem } from '../api/infoApi';
@@ -39,6 +40,7 @@ interface Interest {
 }
 
 export default function HomePage({ user, onLogout }: HomePageProps) {
+  const navigate = useNavigate();
   const [selectedInterests, setSelectedInterests] = useState<string[]>(['Punti di interesse']);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState<Array<{ text: string; isUser: boolean }>>([]);
@@ -84,8 +86,16 @@ export default function HomePage({ user, onLogout }: HomePageProps) {
     setErrorState(null);
   };
 
-  const handleCardClick = () => {
-    setShowWorkInProgressModal(true);
+  const handleCardClick = (recommendation: DiscoverItem) => {
+    
+    const selectedDiscoveryType = getSelectedDiscoverType();
+    if (selectedDiscoveryType == DiscoverType.Poi) {
+      navigate('/detail?type=' + selectedDiscoveryType + '&id=' + recommendation.entityId);
+      console.error('GO TO DETAIL');
+    } else {
+      setShowWorkInProgressModal(true);
+    }
+    
   };
 
   const closeWorkInProgressModal = () => {
@@ -96,10 +106,10 @@ export default function HomePage({ user, onLogout }: HomePageProps) {
   
   const showServerError = (error: any) => {
     console.error('Errore nel caricamento dei dati');
+    console.log(error);
 
     if (error instanceof ApiErrorWithResponse) {
-      console.log(error.statusCode);
-
+      
       // Token expired, should login again
       if (error.statusCode === 401) {
         onLogout();
@@ -132,8 +142,6 @@ export default function HomePage({ user, onLogout }: HomePageProps) {
       const response = await getDiscoverList(selectedDiscoveryType);
 
       if (response.success && response.result) {
-        console.log('discoveryitems RESPONSE');
-        console.log(response.result);
         setDiscoveryData(response.result?.result);        
       } else {
         setErrorState({
@@ -164,8 +172,6 @@ export default function HomePage({ user, onLogout }: HomePageProps) {
       const response = await getCategories();
       
       if (response.success && response.result) {
-        console.log('CATEGORIES RESPONSE');
-        console.log(response.result);
         cachedCategories.current = response.result;
         
         // Now can load the right discoveryType
@@ -234,6 +240,7 @@ export default function HomePage({ user, onLogout }: HomePageProps) {
 
     const out = discoveryData.map(item => ({
       ...item,
+      id: item.entityId,
       title: item.entityName,
       category: item.badgeText,
       location: item.address || 'Cupra Marittima',
@@ -380,7 +387,7 @@ export default function HomePage({ user, onLogout }: HomePageProps) {
           <div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
               {filteredContent.map((rec, index) => (
-                <RecommendationCard key={index} recommendation={rec} onClick={handleCardClick} />
+                <RecommendationCard key={index} recommendation={rec} onClick={() => handleCardClick(rec)} />
               ))}
             </div>
           </div>
@@ -516,13 +523,14 @@ export default function HomePage({ user, onLogout }: HomePageProps) {
 
 interface RecommendationCardProps {
   recommendation: {
+    id: string;
     title: string;
     category: string;
     location: string;
     image: string;
     date?: string;
   };
-  onClick: () => void;
+  onClick: (recommendation: DiscoverItem) => void;
 }
 
 function RecommendationCard({ recommendation, onClick }: RecommendationCardProps) {

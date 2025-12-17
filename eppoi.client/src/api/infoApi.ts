@@ -48,6 +48,14 @@ export interface DiscoverItem {
   date?: string;  
 }
 
+export interface PoiItem extends DiscoverItem {
+  description: string;
+  latitude: number;
+  longitude: number;
+  category: string;
+  gallery: Array<string>;
+}
+
 export interface DiscoverListResponse extends ApiResponse {
   result: {
     result: Array<DiscoverItem>
@@ -56,6 +64,12 @@ export interface DiscoverListResponse extends ApiResponse {
 
 export interface GetCategoriesResponse extends ApiResponse {
   result: Array<Category>;
+}
+
+export interface GetPoiResponse extends ApiResponse {
+  result: {
+    result: PoiItem
+  };
 }
 
 export async function getCategories(): Promise<GetCategoriesResponse> {
@@ -68,4 +82,10 @@ export async function getDiscoverList(type: DiscoverType): Promise<DiscoverListR
   return invokeApi(async () => {
     return await apiClient.get<DiscoverListResponse>('/GetDiscoverList?type=' + type);
   }, 'Errore durante il recupero della discovery list di tipo ' + type);
+}
+
+export async function getPoiDetail(id: string): Promise<GetPoiResponse> {
+  return invokeApi(async () => {
+    return await apiClient.get<GetPoiResponse>('/GetPOIById?id=' + id);
+  }, 'Errore durante il recupero delle categorie');
 }
