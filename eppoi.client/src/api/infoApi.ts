@@ -1,7 +1,8 @@
 import axios from 'axios';
+import type { EnumType } from '@ncoderz/superenum';
 import { invokeApi, type ApiResponse } from './apiUtils';
 
-const API_BASE = '/api/Info';
+const API_BASE = '/api/LocalInfo';
 
 const apiClient = axios.create({
   baseURL: API_BASE,
@@ -10,48 +11,61 @@ const apiClient = axios.create({
   },
 });
 
-export interface MunicipalityData {
-  poi: Array<{
-    entityId: string;
-    entityName: string;
-    imagePath: string;
-    badgeText: string;
-    address: string;
-  }>;
-  events: Array<{
-    municipalityData: {
-      name: string;
-      logoPath: string;
-    };
-    date: string;
-    entityId: string;
-    entityName: string;
-    imagePath: string;
-    badgeText: string;
-    address: string | null;
-  }>;
-  articles: Array<{
-    entityId: string;
-    entityName: string;
-    imagePath: string;
-    badgeText: string;
-    address: string | null;
-  }>;
-  organizations: Array<{
-    entityId: string;
-    entityName: string;
-    imagePath: string;
-    badgeText: string;
-    address: string;
-  }>;
+// Authorization token for all of these APIs
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('authToken');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+const DiscoverType = {
+  Poi: 0,
+  Event: 1,
+  Article: 2,
+  Organization: 3
 }
 
-export interface InfoResponse extends ApiResponse {
-  result: MunicipalityData;
+type DiscoverType = EnumType<typeof DiscoverType>;
+
+export interface Category {
+  Name: string;
+  Label: string;
 }
 
-export async function getMunicipalityInfo(): Promise<InfoResponse> {
+export interface DiscoverItem {
+  entityId: string;
+  entityName: string;
+  imagePath: string;
+  badgeText: string;
+  address?: string;  
+  date?: string;  
+}
+
+export interface DiscoverListResponse extends ApiResponse {
+  result: {
+    result: Array<DiscoverItem>
+  };
+}
+
+export interface GetCategoriesResponse extends ApiResponse {
+  result: Array<Category>;
+}
+
+export async function getCategories(): Promise<GetCategoriesResponse> {
   return invokeApi(async () => {
-    return await apiClient.get<InfoResponse>('/GetMunicipalityInfo');
-  }, 'Errore durante il recupero delle informazioni del comune');
+    return await apiClient.get<GetCategoriesResponse>('/GetCategories');
+  }, 'Errore durante il recupero delle categorie');
+}
+
+export async function getDiscoverList(type: DiscoverType): Promise<DiscoverListResponse> {
+  return invokeApi(async () => {
+    return await apiClient.get<DiscoverListResponse>('/GetDiscoverList?type=' + type);
+  }, 'Errore durante il recupero della discovery list di tipo ' + type);
 }

@@ -1,10 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { LogOut, MessageCircle, X, Send, MapPin, Calendar, Navigation, Newspaper, Briefcase, ChevronLeft, ChevronRight } from 'lucide-react';
 import logoImage from 'figma:asset/958defa264c22f47e7a42e2e88ba5be34b61d176.png';
-import { getMunicipalityInfo, type MunicipalityData } from '../api/infoApi';
+import { getCategories, getDiscoverList, type Category, type DiscoverItem } from '../api/infoApi';
+import { ApiErrorWithResponse } from '../api/apiUtils';
 import LoadingSpinner from './ui/LoadingSpinner';
 import ErrorModal from './ui/ErrorModal';
 import { getMediaUrl } from '../config/constants';
+
+// Importa DiscoverType dall'API
+const DiscoverType = {
+  Poi: 0,
+  Event: 1,
+  Article: 2,
+  Organization: 3
+} as const;
+
+type DiscoverType = typeof DiscoverType[keyof typeof DiscoverType];
 
 interface HomePageProps {
   user: {
@@ -20,6 +31,13 @@ interface ErrorState {
   message: string;
 }
 
+// Definisci la struttura degli interessi con il mapping a DiscoverType
+interface Interest {
+  name: string;
+  icon: typeof Navigation;
+  discoverType: DiscoverType;
+}
+
 export default function HomePage({ user, onLogout }: HomePageProps) {
   const [selectedInterests, setSelectedInterests] = useState<string[]>(['Punti di interesse']);
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -27,9 +45,11 @@ export default function HomePage({ user, onLogout }: HomePageProps) {
   const [chatInput, setChatInput] = useState('');
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
-  const [municipalityData, setMunicipalityData] = useState<MunicipalityData | null>(null);
+  const [discoveryData, setDiscoveryData] = useState<Array<DiscoverItem> | null>(null);
   const [errorState, setErrorState] = useState<ErrorState | null>(null);
   const [showErrorModal, setShowErrorModal] = useState(false);
+  
+  const dataLoadingRef = useRef(false);
 
   const cupraImages = [
     getMediaUrl('/Media/Organization/mobile-home-00356330449-8569dd20-ac7c-48e7-a50b-acbe25da5c41.webp'),
@@ -46,30 +66,66 @@ export default function HomePage({ user, onLogout }: HomePageProps) {
     setCurrentSlide((prev) => (prev - 1 + cupraImages.length) % cupraImages.length);
   };
 
-  const interests = [
-    { name: 'Punti di interesse', icon: Navigation },
-    { name: 'Eventi', icon: Calendar },
-    { name: 'Articoli', icon: Newspaper },
-    { name: 'Operatori economici', icon: Briefcase },
+  const interests: Interest[] = [
+    { name: 'Punti di interesse', icon: Navigation, discoverType: DiscoverType.Poi },
+    { name: 'Eventi', icon: Calendar, discoverType: DiscoverType.Event },
+    { name: 'Articoli', icon: Newspaper, discoverType: DiscoverType.Article },
+    { name: 'Operatori economici', icon: Briefcase, discoverType: DiscoverType.Organization },
   ];
+
+  const getSelectedDiscoverType = (): DiscoverType => {
+    const selectedInterest = interests.find(i => selectedInterests.includes(i.name));
+    return selectedInterest ? selectedInterest.discoverType : DiscoverType.Poi;
+  };
 
   const closeErrorModal = () => {
     setShowErrorModal(false);
     setErrorState(null);
   };
 
-  const handleRetry = async () => {
-    closeErrorModal();
-    await loadMunicipalityData();
+  const cachedCategories = useRef<Array<Category> | null>(null);
+  
+  const showServerError = (error: any) => {
+    console.error('Errore nel caricamento dei dati');
+
+    if (error instanceof ApiErrorWithResponse) {
+      console.log(error.statusCode);
+
+      // Token expired, should login again
+      if (error.statusCode === 401) {
+        onLogout();
+        return;
+      }
+
+      setErrorState({
+        title: 'Errore Server',
+        message: error.message || 'Si è verificato un errore durante il caricamento dei dati. Riprova tra qualche minuto.'
+      });
+    } else {
+      setErrorState({
+        title: 'Errore Sconosciuto',
+        message: 'Si è verificato un errore imprevisto.'
+      });
+    }
+    setShowErrorModal(true);
   };
 
-  const loadMunicipalityData = async () => {
+  const loadSelectedDiscoveryType = async (selectedDiscoveryType: DiscoverType) => {
+    // Avoid duplicate calls during re-renders
+    if (dataLoadingRef.current) {
+      return;
+    }
+
     setIsLoading(true);
+    dataLoadingRef.current = true;
+
     try {
-      const response = await getMunicipalityInfo();
-      
+      const response = await getDiscoverList(selectedDiscoveryType);
+
       if (response.success && response.result) {
-        setMunicipalityData(response.result);
+        console.log('discoveryitems RESPONSE');
+        console.log(response.result);
+        setDiscoveryData(response.result?.result);        
       } else {
         setErrorState({
           title: 'Errore nel caricamento',
@@ -78,20 +134,61 @@ export default function HomePage({ user, onLogout }: HomePageProps) {
         setShowErrorModal(true);
       }
     } catch (error) {
-      console.error('Errore nel caricamento dei dati del comune:', error);
-      setErrorState({
-        title: 'Errore Server',
-        message: 'Si è verificato un errore durante il caricamento dei dati. Il server non è attualmente disponibile. Riprova tra qualche minuto.'
-      });
-      setShowErrorModal(true);
+      showServerError(error);
     } finally {
       setIsLoading(false);
+      dataLoadingRef.current = false;      
     }
+  };
+
+  const loadMunicipalityData = useCallback(async () => {
+    // Avoid duplicate calls during re-renders
+    if (dataLoadingRef.current) {
+      return;
+    }
+
+    setIsLoading(true);
+    dataLoadingRef.current = true;
+    let success = false;
+
+    try {
+      const response = await getCategories();
+      
+      if (response.success && response.result) {
+        console.log('CATEGORIES RESPONSE');
+        console.log(response.result);
+        cachedCategories.current = response.result;
+        
+        // Now can load the right discoveryType
+        success = true;        
+      } else {
+        setErrorState({
+          title: 'Errore nel caricamento',
+          message: 'Non è stato possibile caricare i dati del comune. Riprova.'
+        });
+        setShowErrorModal(true);
+      }
+    } catch (error) {
+      showServerError(error);
+    } finally {
+      setIsLoading(false);
+      dataLoadingRef.current = false;
+
+      if (success) {
+        loadSelectedDiscoveryType(getSelectedDiscoverType());
+      }
+    }
+  }, []);
+
+  const handleRetry = async () => {
+    closeErrorModal();
+    dataLoadingRef.current = false;
+    await loadMunicipalityData();
   };
 
   useEffect(() => {
     loadMunicipalityData();
-  }, []);
+  }, [loadMunicipalityData]);
 
   const toggleInterest = (interest: string) => {
     // Cannot deselect anything
@@ -101,13 +198,14 @@ export default function HomePage({ user, onLogout }: HomePageProps) {
     
     // Current selection change
     setSelectedInterests([interest]);
+    const selectedInterest = interests.find(i => i.name === interest);
+    loadSelectedDiscoveryType(selectedInterest.discoverType);
   };
 
   const handleSendMessage = () => {
     if (chatInput.trim()) {
       setChatMessages(prev => [...prev, { text: chatInput, isUser: true }]);
       
-      // Simulate AI response
       setTimeout(() => {
         const responses = [
           'Ecco alcuni luoghi interessanti nelle vicinanze: il Duomo di Firenze, la Galleria degli Uffizi e Palazzo Vecchio.',
@@ -123,46 +221,18 @@ export default function HomePage({ user, onLogout }: HomePageProps) {
   };
 
   const getFilteredContent = () => {
-    if (!municipalityData) return [];
+    if (!discoveryData || !Array.isArray(discoveryData)) return [];
 
-    if (selectedInterests.includes('Punti di interesse')) {
-      return municipalityData.poi.map(item => ({
-        ...item,
-        title: item.entityName,
-        category: item.badgeText,
-        location: item.address || 'Cupra Marittima',
-        image: getMediaUrl(item.imagePath),
-        date: undefined
-      }));
-    } else if (selectedInterests.includes('Eventi')) {
-      return municipalityData.events.map(item => ({
-        ...item,
-        title: item.entityName,
-        category: item.badgeText,
-        location: item.address || 'Cupra Marittima',
-        image: getMediaUrl(item.imagePath),
-        date: item.date
-      }));
-    } else if (selectedInterests.includes('Articoli')) {
-      return municipalityData.articles.map(item => ({
-        ...item,
-        title: item.entityName,
-        category: item.badgeText,
-        location: item.address || '',
-        image: getMediaUrl(item.imagePath),
-        date: undefined
-      }));
-    } else if (selectedInterests.includes('Operatori economici')) {
-      return municipalityData.organizations.map(item => ({
-        ...item,
-        title: item.entityName,
-        category: item.badgeText,
-        location: item.address || 'Cupra Marittima',
-        image: getMediaUrl(item.imagePath),
-        date: undefined
-      }));
-    }
-    return [];
+    const out = discoveryData.map(item => ({
+      ...item,
+      title: item.entityName,
+      category: item.badgeText,
+      location: item.address || 'Cupra Marittima',
+      image: getMediaUrl(item.imagePath),
+      date: item.date
+    }));
+    
+    return out;
   };
 
   const filteredContent = getFilteredContent();
@@ -194,7 +264,7 @@ export default function HomePage({ user, onLogout }: HomePageProps) {
       document.removeEventListener('touchstart', handleTouchStart);
       document.removeEventListener('touchend', handleTouchEnd);
     };
-  }, []);
+  }, [loadMunicipalityData]);
 
   if (isLoading) {
     return <LoadingSpinner message="Caricamento dati in corso..." />;
@@ -223,7 +293,7 @@ export default function HomePage({ user, onLogout }: HomePageProps) {
           <div className="mb-5 sm:mb-6 md:mb-8">
             <h2 className="text-[#004d99] text-[22px] sm:text-[24px] md:text-[32px] font-['Titillium_Web:Bold',sans-serif] mb-1 sm:mb-2">
               Ciao {user.name}!
-            </h2>            
+            </h2>            		
 
             {/* Location Notice */}
             <div className="bg-white rounded-lg shadow-md p-3 sm:p-4 md:p-5 flex items-center gap-3 sm:gap-4">

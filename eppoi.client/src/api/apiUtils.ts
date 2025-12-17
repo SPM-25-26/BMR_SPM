@@ -23,7 +23,14 @@ export class ApiErrorWithResponse extends Error {
   }
 }
 
-// Utility function per invocare le API con gestione errori centralizzata
+/**
+ * Utility function to centralize API calls
+ * @template T - Output type
+ * @param callee - Internal calling function
+ * @param msgErr - Fallback message error
+ * @returns A typed Promise
+ * @throws {ApiErrorWithResponse}
+ */
 export const invokeApi = async <T,>(
   callee: () => Promise<{ data: T }>, 
   msgErr: string
@@ -31,7 +38,7 @@ export const invokeApi = async <T,>(
   try {
     const response = await callee();
     return response.data;
-  } catch (error) {
+  } catch (error) {    
     if (axios.isAxiosError(error)) {
       const statusCode = error.response?.status;
       const responseData = error.response?.data as ApiResponse | undefined;
