@@ -10,6 +10,7 @@ import LoginPage from './components/LoginPage';
 import RegisterPage from './components/RegisterPage';
 import HomePage from './components/HomePage';
 import ResetPasswordPage from './components/ResetPasswordPage';
+import OnboardingWizard from './components/OnboardingWizard';
 
 interface User {
     name: string;
@@ -79,6 +80,11 @@ export default function App() {
         setUser(userData);
     };
 
+  const handleOnboardingComplete = () => {
+    // Navigate to home page after onboarding completion
+    window.location.href = '/';
+  };
+
   const handleLogout = () => {
         localStorage.removeItem('authenticatedUser');
         localStorage.removeItem('authToken');
@@ -141,6 +147,17 @@ export default function App() {
                           <MailToVerifyRoute user={user}>
                             <EmailVerificationRequired user={user} onLogout={handleLogout} />
                             </MailToVerifyRoute>
+                        }
+                    />
+                    <Route
+                        path="/onboarding"
+                        element={
+                            <ProtectedRoute user={user}>
+                                <OnboardingWizard 
+                                    userName={user?.name || ''} 
+                                    onComplete={handleOnboardingComplete} 
+                                />
+                            </ProtectedRoute>
                         }
                     />
                     <Route
