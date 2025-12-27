@@ -164,7 +164,7 @@ export default function App() {
                         path="/"
                         element={
                             <ProtectedRoute user={user}>
-                                <HomePage user={user} onLogout={handleLogout} />
+                            <HomePage user={user} onLogout={handleLogout} userPreferences={{ interests: ['arte-cultura', 'eventi'], travelStyle: '', dietaryNeeds: [] }} />
                             </ProtectedRoute>
                         }
                     />

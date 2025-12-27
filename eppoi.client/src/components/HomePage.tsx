@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, MessageCircle, X, Send, MapPin, Calendar, Navigation, Newspaper, Briefcase, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LogOut, MessageCircle, X, Send, MapPin, Calendar, Navigation, Newspaper, Briefcase, ChevronLeft, ChevronRight, Settings } from 'lucide-react';
 import logoImage from 'figma:asset/958defa264c22f47e7a42e2e88ba5be34b61d176.png';
 import { getCategories, getDiscoverList, type Category, type DiscoverItem } from '../api/infoApi';
 import { ApiErrorWithResponse } from '../api/apiUtils';
 import LoadingSpinner from './ui/LoadingSpinner';
 import ErrorModal from './ui/ErrorModal';
 import { getMediaUrl } from '../config/constants';
+import SettingsModal from './SettingsModal';
 
 // Importa DiscoverType dall'API
 const DiscoverType = {
@@ -24,7 +25,13 @@ interface HomePageProps {
     userName: string;
     email: string;
   };
+  userPreferences: {
+    interests: string[];
+    travelStyle: string;
+    dietaryNeeds: string[];
+  };
   onLogout: () => void;
+  onViewDetail: (item: any) => void;
 }
 
 interface ErrorState {
@@ -39,7 +46,7 @@ interface Interest {
   discoverType: DiscoverType;
 }
 
-export default function HomePage({ user, onLogout }: HomePageProps) {
+export default function HomePage({ user, onLogout, userPreferences }: HomePageProps) {
   const navigate = useNavigate();
   const [selectedInterests, setSelectedInterests] = useState<string[]>(['Punti di interesse']);
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -51,7 +58,8 @@ export default function HomePage({ user, onLogout }: HomePageProps) {
   const [errorState, setErrorState] = useState<ErrorState | null>(null);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [showWorkInProgressModal, setShowWorkInProgressModal] = useState(false);
-  
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
   const dataLoadingRef = useRef(false);
 
   const cupraImages = [
@@ -60,7 +68,7 @@ export default function HomePage({ user, onLogout }: HomePageProps) {
     getMediaUrl('/Media/Organization/mobile-home-00356330449-435e0456-03cd-45d9-892d-bfc96c649ffd.webp'),
     getMediaUrl('/Media/Organization/mobile-home-00356330449-aad1daeb-9faa-43a4-ad51-b028016766ae.webp'),
   ];
-  
+
   const nextSlide = () => {
     setCurrentSlide((prev) => (prev + 1) % cupraImages.length);
   };
@@ -87,7 +95,7 @@ export default function HomePage({ user, onLogout }: HomePageProps) {
   };
 
   const handleCardClick = (recommendation: DiscoverItem) => {
-    
+
     const selectedDiscoveryType = getSelectedDiscoverType();
     if (selectedDiscoveryType == DiscoverType.Poi) {
       navigate('/detail?type=' + selectedDiscoveryType + '&id=' + recommendation.entityId);
@@ -95,7 +103,7 @@ export default function HomePage({ user, onLogout }: HomePageProps) {
     } else {
       setShowWorkInProgressModal(true);
     }
-    
+
   };
 
   const closeWorkInProgressModal = () => {
@@ -103,13 +111,13 @@ export default function HomePage({ user, onLogout }: HomePageProps) {
   };
 
   const cachedCategories = useRef<Array<Category> | null>(null);
-  
+
   const showServerError = (error: any) => {
     console.error('Errore nel caricamento dei dati');
     console.log(error);
 
     if (error instanceof ApiErrorWithResponse) {
-      
+
       // Token expired, should login again
       if (error.statusCode === 401) {
         onLogout();
@@ -142,7 +150,7 @@ export default function HomePage({ user, onLogout }: HomePageProps) {
       const response = await getDiscoverList(selectedDiscoveryType);
 
       if (response.success && response.result) {
-        setDiscoveryData(response.result?.result);        
+        setDiscoveryData(response.result?.result);
       } else {
         setErrorState({
           title: 'Errore nel caricamento',
@@ -154,7 +162,7 @@ export default function HomePage({ user, onLogout }: HomePageProps) {
       showServerError(error);
     } finally {
       setIsLoading(false);
-      dataLoadingRef.current = false;      
+      dataLoadingRef.current = false;
     }
   };
 
@@ -170,12 +178,12 @@ export default function HomePage({ user, onLogout }: HomePageProps) {
 
     try {
       const response = await getCategories();
-      
+
       if (response.success && response.result) {
         cachedCategories.current = response.result;
-        
+
         // Now can load the right discoveryType
-        success = true;        
+        success = true;
       } else {
         setErrorState({
           title: 'Errore nel caricamento',
@@ -199,6 +207,10 @@ export default function HomePage({ user, onLogout }: HomePageProps) {
     closeErrorModal();
     dataLoadingRef.current = false;
     await loadMunicipalityData();
+  };
+
+  const onEditPreferences = () => {
+    navigate('/onboarding');
   };
 
   useEffect(() => {
@@ -494,6 +506,26 @@ export default function HomePage({ user, onLogout }: HomePageProps) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Settings Button */}
+      <button
+        onClick={() => setIsSettingsOpen(true)}
+        className="fixed bottom-3 left-3 sm:bottom-4 sm:left-4 md:bottom-6 md:left-6 bg-[#0066cc] hover:bg-[#004d99] text-white p-3 sm:p-3 md:p-4 rounded-full shadow-lg transition-colors z-40"
+      >
+        <Settings className="w-6 h-6 sm:w-6 sm:h-6 md:w-8 md:h-8" />
+      </button>
+
+      {/* Settings Modal */}
+      {isSettingsOpen && (
+        <SettingsModal
+          isOpen={isSettingsOpen}
+          userName={user.name}
+          userEmail={user.email}
+          userPreferences={userPreferences}
+          onEditPreferences={onEditPreferences}
+          onClose={() => setIsSettingsOpen(false)}
+        />
       )}
 
       {/* Error Modal */}
