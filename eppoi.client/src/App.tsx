@@ -1,6 +1,8 @@
+import type { EnumType } from '@ncoderz/superenum';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
+import { STORAGE_AUTHTOKEN_KEY } from './api/apiUtils';
 import ForgotPasswordPage from './components/ForgotPasswordPage';
 import EmailVerification from './components/EmailVerification';
 import EmailVerificationRequired from './components/EmailVerificationRequired';
@@ -19,7 +21,23 @@ interface User {
     emailConfirmed: boolean;
 }
 
-const STORAGE_KEY = 'authenticatedUser';
+const TravellerType = {
+  Solo: 0,
+  Couple: 1,
+  Family: 2,
+  FriendsGroup: 3
+}
+
+type TravellerType = EnumType<typeof TravellerType>;
+
+interface UserPreferences {
+  interests: string[];
+  travelStyle: TravellerType;
+  dietaryNeeds: string[];
+}
+
+const STORAGE_USER_KEY = 'authenticatedUser';
+const STORAGE_USERPREFERENCES_KEY = 'userPreferences';
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
 
 // Protected Route - only authenticated users
@@ -28,27 +46,36 @@ interface ProtectedRouteProps {
     user: User | null;
 }
 
-function ProtectedRoute({ children, user }: ProtectedRouteProps) {
+// Registered user rout - needs a registered, mail verified user
+function RegisteredUserRoute({ children, user }: ProtectedRouteProps) {
   return user ? (user.emailConfirmed ? children : <Navigate to="/needs-verification" replace />) : <Navigate to="/welcome" replace />;
 }
 
-// Public Route - redirect to home if already authenticated
-interface PublicRouteProps {
-    children: React.ReactNode;
-    user: User | null;
+// Protected route - needs a registered, mail verified user, that already has set his preferences
+function ProtectedRoute({ children, user, userPreferences }: ProtectedRouteProps) {
+  if (!user) {
+    return <Navigate to="/welcome" replace />;
 }
 
-function PublicRoute({ children, user }: PublicRouteProps) {
+  if (!user.emailConfirmed) {
+    return <Navigate to="/needs-verification" replace />;
+  }
+
+  let hasPreferences = false;
+  if (userPreferences) {
+    hasPreferences = Array.isArray(userPreferences.interests) && userPreferences.interests.length > 0;
+  }
+  
+  return (hasPreferences ? children : <Navigate to="/onboarding" replace />);
+}
+
+// Public Route - redirect to home if already authenticated
+function PublicRoute({ children, user }: ProtectedRouteProps) {
     return !user ? children : <Navigate to="/" replace />;
 }
 
 // Mail to confirm Route - redirect to verify email message if authenticated but still not verified
 //needs-verification
-interface MailToVerifyRouteProps {
-  children: React.ReactNode;
-  user: User | null;
-}
-
 function MailToVerifyRoute({ children, user }: ProtectedRouteProps) {
   return user && !user.emailConfirmed ? children : <Navigate to="/" replace />;
 }
@@ -56,7 +83,7 @@ function MailToVerifyRoute({ children, user }: ProtectedRouteProps) {
 
 export default function App() {
     const [user, setUser] = useState<User | null>(() => {
-        const storedUser = localStorage.getItem(STORAGE_KEY);
+        const storedUser = localStorage.getItem(STORAGE_USER_KEY);
         if (storedUser) {
             try {
                 return JSON.parse(storedUser);
@@ -67,27 +94,52 @@ export default function App() {
         return null;
     });
 
+    const [userPreferences, setUserPreferences] = useState<UserPreferences | null>(() => {
+        const storedUserPreferences = localStorage.getItem(STORAGE_USERPREFERENCES_KEY);
+        if (storedUserPreferences) {
+            try {
+                return JSON.parse(storedUserPreferences);
+            } catch {
+                return null;
+            }
+      }
+
+        return null;
+    });
+
+    const manifestLoaded = useRef(false);
+
     useEffect(() => {
         if (user) {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
+            localStorage.setItem(STORAGE_USER_KEY, JSON.stringify(user));
+            localStorage.setItem(STORAGE_USERPREFERENCES_KEY, JSON.stringify(userPreferences));
         } else {
-            localStorage.removeItem(STORAGE_KEY);
-            localStorage.removeItem('authToken');
+            localStorage.removeItem(STORAGE_USER_KEY);
+            localStorage.removeItem(STORAGE_USERPREFERENCES_KEY);
+            localStorage.removeItem(STORAGE_AUTHTOKEN_KEY);
         }
     }, [user]);
 
-    const handleLogin = (userData: User) => {
+    useEffect(() => {
+        if (userPreferences) {
+            localStorage.setItem(STORAGE_USERPREFERENCES_KEY, JSON.stringify(userPreferences));
+        }
+    }, [userPreferences]);
+
+    const handleLogin = (userData: User, userPreferences: UserPreferences) => {
         setUser(userData);
+        setUserPreferences(userPreferences);
     };
 
-  const handleOnboardingComplete = () => {
+  const handleOnboardingComplete = (userPreferences) => {
     // Navigate to home page after onboarding completion
+    setUserPreferences(userPreferences);
     window.location.href = '/';
   };
 
   const handleLogout = () => {
-        localStorage.removeItem('authenticatedUser');
-        localStorage.removeItem('authToken');
+        localStorage.removeItem(STORAGE_USER_KEY);
+        localStorage.removeItem(STORAGE_AUTHTOKEN_KEY);
         setUser(null);
     };
 
@@ -152,19 +204,19 @@ export default function App() {
                     <Route
                         path="/onboarding"
                         element={
-                            <ProtectedRoute user={user}>
+                            <RegisteredUserRoute user={user}>
                                 <OnboardingWizard 
                                     userName={user?.name || ''} 
                                     onComplete={handleOnboardingComplete} 
                                 />
-                            </ProtectedRoute>
+                            </RegisteredUserRoute>
                         }
                     />
                     <Route
                         path="/"
                         element={
-                            <ProtectedRoute user={user}>
-                            <HomePage user={user} onLogout={handleLogout} userPreferences={{ interests: ['arte-cultura', 'eventi'], travelStyle: '', dietaryNeeds: [] }} />
+                            <ProtectedRoute user={user} userPreferences={userPreferences}>
+                            <HomePage user={user} onLogout={handleLogout} userPreferences={userPreferences} />
                             </ProtectedRoute>
                         }
                     />

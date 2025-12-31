@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { X, User, Mail, Landmark, Newspaper, Hotel, Calendar, MapPin, Utensils, ShoppingBag, Sparkles, Users, UsersRound, WheatOff, Milk, Leaf, Edit } from 'lucide-react';
 
 interface SettingsModalProps {
@@ -21,6 +22,20 @@ export default function SettingsModal({
   userPreferences,
   onEditPreferences,
 }: SettingsModalProps) {
+  // Blocca lo scroll del body quando il modal è aperto
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    
+    // Cleanup: ripristina lo scroll quando il componente viene smontato
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const interestsMap: { [key: string]: { name: string; icon: any } } = {
@@ -48,8 +63,8 @@ export default function SettingsModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/50 backdrop-blur-sm p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col my-4">
         {/* Header */}
         <div className="bg-[#0066cc] px-5 sm:px-6 py-5 sm:py-6 flex items-center justify-between">
           <h2 className="text-[20px] sm:text-[24px] text-white font-['Titillium_Web:Bold',sans-serif]">

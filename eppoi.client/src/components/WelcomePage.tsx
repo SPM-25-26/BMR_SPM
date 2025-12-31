@@ -10,7 +10,10 @@ import ErrorModal from './ui/ErrorModal';
 import { decodeJwt } from './ui/utils';
 
 interface WelcomePageProps {
-  onLogin: (userData: { name: string; userName: string; email: string, emailConfirmed: boolean }) => void;
+  onLogin: (
+    userData: { name: string; userName: string; email: string, emailConfirmed: boolean },
+    userPreferences: unknown
+  ) => void;
 }
 
 interface GoogleUserInfo {
@@ -109,12 +112,13 @@ export default function WelcomePage({ onLogin }: WelcomePageProps) {
             localStorage.setItem('authToken', apiResponse.result);
 
             googleLoginSuccess = true;
+            ;
             onLogin({
               name: jwtPayload.Name,
               userName: jwtPayload.UserName,
               email: userInfo.email,
               emailConfirmed: true
-            });
+            }, apiResponse.userPreferences);
 
             navigate('/');
           }

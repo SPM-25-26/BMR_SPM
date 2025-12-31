@@ -2,7 +2,7 @@ import { defineMock } from 'vite-plugin-mock-dev-server';
 
 const useMock = import.meta.env.VITE_USE_MOCK_API === 'true';
 
-export default defineMock({
+export default defineMock([{
     url: '/api/Info/GetMunicipalityInfo',
     method: 'GET',
     status: 200,
@@ -596,4 +596,318 @@ export default defineMock({
         ]
       }
     },
-});
+}, {
+  url: '/api/LocalInfo/GetCategories',
+  method: 'GET',
+  status: 200,
+  enabled: useMock,
+  body: {
+    success: true,
+    result: {
+      "result": [
+        {
+          "name": "ArtCulture",
+          "label": "Arte e cultura"
+        },
+        {
+          "name": "Articles",
+          "label": "Articoli e magazine"
+        },
+        {
+          "name": "Sleep",
+          "label": "Dormire"
+        },
+        {
+          "name": "Events",
+          "label": "Eventi"
+        },
+        {
+          "name": "Routes",
+          "label": "Itinerari"
+        },
+        {
+          "name": "EatAndDrink",
+          "label": "Mangiare e bere"
+        },
+        {
+          "name": "Nature",
+          "label": "Natura"
+        },
+        {
+          "name": "Organizations",
+          "label": "Operatori economici"
+        },
+        {
+          "name": "TypicalProducts",
+          "label": "Prodotti tipici"
+        },
+        {
+          "name": "Shopping",
+          "label": "Punti vendita"
+        },
+        {
+          "name": "Services",
+          "label": "Servizi"
+        },
+        {
+          "name": "EntertainmentLeisure",
+          "label": "Svago e divertimento"
+        }
+      ],
+      "id": 384,
+      "exception": null,
+      "status": 5,
+      "isCanceled": false,
+      "isCompleted": true,
+      "isCompletedSuccessfully": true,
+      "creationOptions": 0,
+      "asyncState": null,
+      "isFaulted": false
+    }
+  }
+}, {
+  url: '/api/LocalInfo/GetDiscoverList',
+  method: 'GET',
+  status: 200,
+  enabled: useMock,
+  body: {
+    success: true,
+    result: {
+      "result": [
+        {
+          "date": null,
+          "entityId": "071c2007-30af-4c1b-800a-66a625877efe",
+          "entityName": "Cinema Margherita",
+          "imagePath": "/Media/POI/primary-071c2007-30af-4c1b-800a-66a625877efe.webp",
+          "badgeText": "Cinema",
+          "address": "23, Via Cavour, Marano"
+        },
+        {
+          "date": null,
+          "entityId": "08a77adb-4b9f-4f73-a312-38a373005e14",
+          "entityName": "Sezione Paleolitica - Museo Archeologico del Territorio",
+          "imagePath": "/Media/POI/primary-08a77adb-4b9f-4f73-a312-38a373005e14.webp",
+          "badgeText": "Museo",
+          "address": "Via Castello, Marano"
+        },
+        {
+          "date": null,
+          "entityId": "0e21ec87-6fa4-44bc-aad0-60d4d0ef2156",
+          "entityName": "Pieve di San Basso alla Civita",
+          "imagePath": "/Media/POI/primary-0e21ec87-6fa4-44bc-aad0-60d4d0ef2156.webp",
+          "badgeText": "Chiesa",
+          "address": "Via delle Ginestre, Marano"
+        },
+        {
+          "date": null,
+          "entityId": "1df710a1-3ff8-4e29-99d9-2add3b53fa64",
+          "entityName": "Villa Grisostomi",
+          "imagePath": "/Media/POI/primary-1df710a1-3ff8-4e29-99d9-2add3b53fa64.webp",
+          "badgeText": "Villa",
+          "address": ""
+        },
+        {
+          "date": null,
+          "entityId": "247f349a-874c-42f2-9825-7061b2618c1f",
+          "entityName": "Casa Museo Nazzareno Tomassetti",
+          "imagePath": "/Media/POI/primary-247f349a-874c-42f2-9825-7061b2618c1f.webp",
+          "badgeText": "Museo",
+          "address": "19, Via Sabotino, Marano"
+        },
+        {
+          "date": null,
+          "entityId": "24c1e908-8e94-4c39-915d-20c9385b30ea",
+          "entityName": "Museo Archeologico di Ripatransone",
+          "imagePath": "/Media/POI/primary-24c1e908-8e94-4c39-915d-20c9385b30ea.webp",
+          "badgeText": "Museo",
+          "address": "1, Piazza Venti Settembre"
+        },
+        {
+          "date": null,
+          "entityId": "2e3582c9-238d-495d-8440-9b4abaf35e2f",
+          "entityName": "Borgo di Marano",
+          "imagePath": "/Media/POI/primary-2e3582c9-238d-495d-8440-9b4abaf35e2f.webp",
+          "badgeText": "Castello",
+          "address": ""
+        },
+        {
+          "date": null,
+          "entityId": "36fd1f95-b92a-43e3-b74b-945f7fad269d",
+          "entityName": "Sezione Picena - Museo Archeologico del Territorio",
+          "imagePath": "/Media/POI/primary-36fd1f95-b92a-43e3-b74b-945f7fad269d.webp",
+          "badgeText": "Museo",
+          "address": "Via Castello, Marano"
+        },
+        {
+          "date": null,
+          "entityId": "470bcb69-8d8b-49cf-9bd4-5de11b13b40c",
+          "entityName": "Ninfeo e Villa Romana",
+          "imagePath": "/Media/POI/primary-470bcb69-8d8b-49cf-9bd4-5de11b13b40c.webp",
+          "badgeText": "Villa",
+          "address": "Via Giovanni Ventitreesimo, Marano"
+        },
+        {
+          "date": null,
+          "entityId": "4c6eed8d-24f6-446b-9314-a187229f30b9",
+          "entityName": "Belvedere Menocchia",
+          "imagePath": "/Media/POI/primary-4c6eed8d-24f6-446b-9314-a187229f30b9.webp",
+          "badgeText": "Belvedere",
+          "address": ""
+        },
+        {
+          "date": null,
+          "entityId": "4eae81ad-707f-4ab9-ad74-84b74169e30e",
+          "entityName": "Museo Malacologico Piceno",
+          "imagePath": "/Media/POI/primary-4eae81ad-707f-4ab9-ad74-84b74169e30e.webp",
+          "badgeText": "Museo",
+          "address": "240, Via Adriatica Nord"
+        },
+        {
+          "date": null,
+          "entityId": "522ddd3b-97e9-4cfc-9930-b4fb37cc1b18",
+          "entityName": "Contrada Santi",
+          "imagePath": "/Media/POI/primary-522ddd3b-97e9-4cfc-9930-b4fb37cc1b18.webp",
+          "badgeText": "Viale",
+          "address": ""
+        },
+        {
+          "date": null,
+          "entityId": "5b07dcd9-100a-440b-a90c-dbad8c6aa5db",
+          "entityName": "Castello di Sant'Andrea",
+          "imagePath": "/Media/POI/primary-5b07dcd9-100a-440b-a90c-dbad8c6aa5db.webp",
+          "badgeText": "Castello",
+          "address": "Via San Gregorio Magno, Marano"
+        },
+        {
+          "date": null,
+          "entityId": "6a5596c3-2e83-4b43-b8f8-f43ed22f8ba1",
+          "entityName": "Spiaggia di Cupra Marittima",
+          "imagePath": "/Media/POI/primary-6a5596c3-2e83-4b43-b8f8-f43ed22f8ba1.webp",
+          "badgeText": "Costa marittima",
+          "address": ""
+        },
+        {
+          "date": null,
+          "entityId": "710fce5f-3cea-434b-9775-50ad054e7631",
+          "entityName": "Chiesa di Santa Maria in Castello",
+          "imagePath": "/Media/POI/primary-710fce5f-3cea-434b-9775-50ad054e7631.webp",
+          "badgeText": "Chiesa",
+          "address": ""
+        },
+        {
+          "date": null,
+          "entityId": "7e68c0e5-07b4-47fa-b717-03b1d16ccf41",
+          "entityName": "Piazza Libertà",
+          "imagePath": "/Media/POI/primary-7e68c0e5-07b4-47fa-b717-03b1d16ccf41.webp",
+          "badgeText": "Piazza",
+          "address": ""
+        },
+        {
+          "date": null,
+          "entityId": "85184c79-8db0-4a22-a0a4-9a4ec5a68d2d",
+          "entityName": "Tavola di Vittore Crivelli",
+          "imagePath": "/Media/POI/primary-85184c79-8db0-4a22-a0a4-9a4ec5a68d2d.webp",
+          "badgeText": "Galleria",
+          "address": "Via Giuseppe Viviani, Marano"
+        },
+        {
+          "date": null,
+          "entityId": "91b8a53f-c244-4cdc-88db-6a4ad27a0704",
+          "entityName": "Parco Archeologico Naturalistico \"Civita\"",
+          "imagePath": "/Media/POI/primary-91b8a53f-c244-4cdc-88db-6a4ad27a0704.webp",
+          "badgeText": "Parco archeologico",
+          "address": ""
+        },
+        {
+          "date": null,
+          "entityId": "ac75653b-831f-4dc1-922a-37bdcfc686bf",
+          "entityName": "Chiesa di San Basso e Santa Margherita",
+          "imagePath": "/Media/POI/primary-ac75653b-831f-4dc1-922a-37bdcfc686bf.webp",
+          "badgeText": "Chiesa",
+          "address": "Via Giuseppe Viviani, Marano"
+        },
+        {
+          "date": null,
+          "entityId": "b0961ab7-4f33-4640-b270-2371ce6f084f",
+          "entityName": "Palazzo Brancadoro Sforza",
+          "imagePath": "/Media/POI/primary-b0961ab7-4f33-4640-b270-2371ce6f084f.webp",
+          "badgeText": "Palazzo",
+          "address": ""
+        },
+        {
+          "date": null,
+          "entityId": "b3cc09f1-d945-4851-a864-b52312077805",
+          "entityName": "Mura medievali del Borgo di Marano",
+          "imagePath": "/Media/POI/primary-b3cc09f1-d945-4851-a864-b52312077805.webp",
+          "badgeText": "Mura",
+          "address": ""
+        },
+        {
+          "date": null,
+          "entityId": "b542da9b-3a8b-45ac-9dce-5f70a5c93c0f",
+          "entityName": "Pitture di Pauri",
+          "imagePath": "/Media/POI/primary-b542da9b-3a8b-45ac-9dce-5f70a5c93c0f.webp",
+          "badgeText": "Galleria",
+          "address": "Via Giuseppe Viviani, Marano"
+        },
+        {
+          "date": null,
+          "entityId": "c6f8fe83-1c32-4f9b-9d54-99a0f06dd945",
+          "entityName": "Chiesa dell'Annunziata",
+          "imagePath": "/Media/POI/primary-c6f8fe83-1c32-4f9b-9d54-99a0f06dd945.webp",
+          "badgeText": "Chiesa",
+          "address": ""
+        },
+        {
+          "date": null,
+          "entityId": "cda7f230-26f2-4eed-a311-eacb900b6a3e",
+          "entityName": "Porta Marina",
+          "imagePath": "/Media/POI/primary-cda7f230-26f2-4eed-a311-eacb900b6a3e.webp",
+          "badgeText": "Mura",
+          "address": ""
+        },
+        {
+          "date": null,
+          "entityId": "d43754ad-eb19-47e6-be29-213e9c819dc8",
+          "entityName": "Porte d'ingresso Marano",
+          "imagePath": "/Media/POI/primary-d43754ad-eb19-47e6-be29-213e9c819dc8.webp",
+          "badgeText": "Mura",
+          "address": ""
+        },
+        {
+          "date": null,
+          "entityId": "d91ef0cc-d232-4d64-a1a9-9edc6668363d",
+          "entityName": "Sezione Romana - Museo Archeologico del Territorio",
+          "imagePath": "/Media/POI/primary-d91ef0cc-d232-4d64-a1a9-9edc6668363d.webp",
+          "badgeText": "Museo",
+          "address": "Via Castello, Marano"
+        },
+        {
+          "date": null,
+          "entityId": "e84be8ae-c800-427d-a565-484d72660936",
+          "entityName": "Museo Archeologico del Territorio",
+          "imagePath": "/Media/POI/primary-e84be8ae-c800-427d-a565-484d72660936.webp",
+          "badgeText": "Museo",
+          "address": ""
+        },
+        {
+          "date": null,
+          "entityId": "f7172658-f81a-4e4b-9721-aa5ca2c79e72",
+          "entityName": "Belvedere Calcagno",
+          "imagePath": "/Media/POI/primary-f7172658-f81a-4e4b-9721-aa5ca2c79e72.webp",
+          "badgeText": "Belvedere",
+          "address": ""
+        }
+      ],
+      "id": 410,
+      "exception": null,
+      "status": 5,
+      "isCanceled": false,
+      "isCompleted": true,
+      "isCompletedSuccessfully": true,
+      "creationOptions": 0,
+      "asyncState": null,
+      "isFaulted": false
+    }
+  }
+}]);

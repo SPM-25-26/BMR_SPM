@@ -51,3 +51,5 @@ export const invokeApi = async <T,>(
     throw new Error('Errore API');
   }
 };
+
+export const STORAGE_AUTHTOKEN_KEY = 'authToken';

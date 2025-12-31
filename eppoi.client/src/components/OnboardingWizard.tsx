@@ -104,7 +104,7 @@ export default function OnboardingWizard({
         travelStyle,
         dietaryNeeds,
       });
-      onComplete();
+      onComplete({ interests: selectedInterests, travelStyle: travelStyle, dietaryNeeds: dietaryNeeds });
     }
   };
 

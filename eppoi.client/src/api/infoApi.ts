@@ -1,6 +1,6 @@
 import axios from 'axios';
 import type { EnumType } from '@ncoderz/superenum';
-import { invokeApi, type ApiResponse } from './apiUtils';
+import { invokeApi, type ApiResponse, STORAGE_AUTHTOKEN_KEY } from './apiUtils';
 
 const API_BASE = '/api/LocalInfo';
 
@@ -14,7 +14,7 @@ const apiClient = axios.create({
 // Authorization token for all of these APIs
 apiClient.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem(STORAGE_AUTHTOKEN_KEY);
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }

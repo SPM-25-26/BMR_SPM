@@ -25,6 +25,7 @@ interface GoogleLoginInput {
 
 export interface LoginResponse extends ApiResponse {
   result: string;
+  userPreferences: unknown;
 }
 
 interface PasswordResetInput {
