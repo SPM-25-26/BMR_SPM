@@ -207,6 +207,7 @@ export default function App() {
                             <RegisteredUserRoute user={user}>
                                 <OnboardingWizard 
                                     userName={user?.name || ''} 
+                                    onLogout={handleLogout}
                                     onComplete={handleOnboardingComplete} 
                                 />
                             </RegisteredUserRoute>

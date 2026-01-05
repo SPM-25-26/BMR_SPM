@@ -1,15 +1,14 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, MessageCircle, X, Send, MapPin, Calendar, Navigation, Newspaper, Briefcase, ChevronLeft, ChevronRight, Settings } from 'lucide-react';
 import logoImage from 'figma:asset/958defa264c22f47e7a42e2e88ba5be34b61d176.png';
 import { getCategories, getDiscoverList, type Category, type DiscoverItem } from '../api/infoApi';
-import { ApiErrorWithResponse } from '../api/apiUtils';
 import LoadingSpinner from './ui/LoadingSpinner';
 import ErrorModal from './ui/ErrorModal';
 import { getMediaUrl } from '../config/constants';
 import SettingsModal from './SettingsModal';
+import { useApiDataLoader } from '../hooks/useApiDataLoader';
 
-// Importa DiscoverType dall'API
 const DiscoverType = {
   Poi: 0,
   Event: 1,
@@ -34,12 +33,6 @@ interface HomePageProps {
   onViewDetail: (item: any) => void;
 }
 
-interface ErrorState {
-  title: string;
-  message: string;
-}
-
-// Definisci la struttura degli interessi con il mapping a DiscoverType
 interface Interest {
   name: string;
   icon: typeof Navigation;
@@ -53,171 +46,114 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
   const [chatMessages, setChatMessages] = useState<Array<{ text: string; isUser: boolean }>>([]);
   const [chatInput, setChatInput] = useState('');
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
   const [discoveryData, setDiscoveryData] = useState<Array<DiscoverItem> | null>(null);
-  const [errorState, setErrorState] = useState<ErrorState | null>(null);
-  const [showErrorModal, setShowErrorModal] = useState(false);
   const [showWorkInProgressModal, setShowWorkInProgressModal] = useState(false);
+  const [showLoadDiscoveryTypeErrorModal, setShowLoadDiscoveryTypeErrorModal] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
-  const dataLoadingRef = useRef(false);
+  const cachedCategories = useRef<Array<Category> | null>(null);
 
-  const cupraImages = [
+  const { 
+    isLoading, 
+    errorState, 
+    showErrorModal, 
+    loadData, 
+    closeErrorModal, 
+    resetLoadingFlag 
+  } = useApiDataLoader<Array<Category>>({ 
+    onLogout,
+    onSuccess: async (categories) => {
+      cachedCategories.current = categories;
+    }
+  });
+
+  const cupraImages = useMemo(() => [
     getMediaUrl('/Media/Organization/mobile-home-00356330449-8569dd20-ac7c-48e7-a50b-acbe25da5c41.webp'),
     getMediaUrl('/Media/Organization/mobile-home-00356330449-e6aaed31-1509-40d2-baf3-3c458900af03.webp'),
     getMediaUrl('/Media/Organization/mobile-home-00356330449-435e0456-03cd-45d9-892d-bfc96c649ffd.webp'),
     getMediaUrl('/Media/Organization/mobile-home-00356330449-aad1daeb-9faa-43a4-ad51-b028016766ae.webp'),
-  ];
+  ], []);
 
-  const nextSlide = () => {
+  const nextSlide = useCallback(() => {
     setCurrentSlide((prev) => (prev + 1) % cupraImages.length);
-  };
+  }, [cupraImages.length]);
 
-  const prevSlide = () => {
+  const prevSlide = useCallback(() => {
     setCurrentSlide((prev) => (prev - 1 + cupraImages.length) % cupraImages.length);
-  };
+  }, [cupraImages.length]);
 
-  const interests: Interest[] = [
+  const interests: Interest[] = useMemo(() => [
     { name: 'Punti di interesse', icon: Navigation, discoverType: DiscoverType.Poi },
     { name: 'Eventi', icon: Calendar, discoverType: DiscoverType.Event },
     { name: 'Articoli', icon: Newspaper, discoverType: DiscoverType.Article },
     { name: 'Operatori economici', icon: Briefcase, discoverType: DiscoverType.Organization },
-  ];
+  ], []);
 
-  const getSelectedDiscoverType = (): DiscoverType => {
+  const getSelectedDiscoverType = useCallback((): DiscoverType => {
     const selectedInterest = interests.find(i => selectedInterests.includes(i.name));
     return selectedInterest ? selectedInterest.discoverType : DiscoverType.Poi;
-  };
+  }, [interests, selectedInterests]);
 
-  const closeErrorModal = () => {
-    setShowErrorModal(false);
-    setErrorState(null);
-  };
+  const closeWorkInProgressModal = useCallback(() => {
+    setShowWorkInProgressModal(false);
+  }, []);
 
-  const handleCardClick = (recommendation: DiscoverItem) => {
+  const closeLoadDiscoveryTypeErrorModal = useCallback(() => {
+    setShowLoadDiscoveryTypeErrorModal(false);
+  }, []);
 
+  const handleCardClick = useCallback((recommendation: DiscoverItem) => {
     const selectedDiscoveryType = getSelectedDiscoverType();
-    if (selectedDiscoveryType == DiscoverType.Poi) {
+    if (selectedDiscoveryType === DiscoverType.Poi) {
       navigate('/detail?type=' + selectedDiscoveryType + '&id=' + recommendation.entityId);
       console.error('GO TO DETAIL');
     } else {
       setShowWorkInProgressModal(true);
     }
+  }, [getSelectedDiscoverType, navigate]);
 
-  };
-
-  const closeWorkInProgressModal = () => {
-    setShowWorkInProgressModal(false);
-  };
-
-  const cachedCategories = useRef<Array<Category> | null>(null);
-
-  const showServerError = (error: any) => {
-    console.error('Errore nel caricamento dei dati');
-    console.log(error);
-
-    if (error instanceof ApiErrorWithResponse) {
-
-      // Token expired, should login again
-      if (error.statusCode === 401) {
-        onLogout();
-        return;
-      }
-
-      setErrorState({
-        title: 'Errore Server',
-        message: error.message || 'Si è verificato un errore durante il caricamento dei dati. Riprova tra qualche minuto.'
-      });
-    } else {
-      setErrorState({
-        title: 'Errore Sconosciuto',
-        message: 'Si è verificato un errore imprevisto.'
-      });
-    }
-    setShowErrorModal(true);
-  };
-
-  const loadSelectedDiscoveryType = async (selectedDiscoveryType: DiscoverType) => {
-    // Avoid duplicate calls during re-renders
-    if (dataLoadingRef.current) {
-      return;
-    }
-
-    setIsLoading(true);
-    dataLoadingRef.current = true;
-
+  const loadSelectedDiscoveryType = useCallback(async (selectedDiscoveryType: DiscoverType) => {
     try {
-      const response = await getDiscoverList(selectedDiscoveryType);
-
-      if (response.success && response.result) {
-        setDiscoveryData(response.result?.result);
-      } else {
-        setErrorState({
-          title: 'Errore nel caricamento',
-          message: 'Non è stato possibile caricare i dati del comune. Riprova.'
-        });
-        setShowErrorModal(true);
+      const result = await getDiscoverList(selectedDiscoveryType);
+      if (result) {
+        setDiscoveryData(result.result.result);
       }
     } catch (error) {
-      showServerError(error);
-    } finally {
-      setIsLoading(false);
-      dataLoadingRef.current = false;
-    }
-  };
-
-  const loadMunicipalityData = useCallback(async () => {
-    // Avoid duplicate calls during re-renders
-    if (dataLoadingRef.current) {
-      return;
-    }
-
-    setIsLoading(true);
-    dataLoadingRef.current = true;
-    let success = false;
-
-    try {
-      const response = await getCategories();
-
-      if (response.success && response.result) {
-        cachedCategories.current = response.result;
-
-        // Now can load the right discoveryType
-        success = true;
-      } else {
-        setErrorState({
-          title: 'Errore nel caricamento',
-          message: 'Non è stato possibile caricare i dati del comune. Riprova.'
-        });
-        setShowErrorModal(true);
-      }
-    } catch (error) {
-      showServerError(error);
-    } finally {
-      setIsLoading(false);
-      dataLoadingRef.current = false;
-
-      if (success) {
-        loadSelectedDiscoveryType(getSelectedDiscoverType());
-      }
+      console.error('Errore nel caricamento della lista discover:', error);
     }
   }, []);
 
-  const handleRetry = async () => {
+  const loadCurrentSelectedDiscoveryType = useCallback(async () => {
+    await loadSelectedDiscoveryType(getSelectedDiscoverType());
+  }, [loadSelectedDiscoveryType, getSelectedDiscoverType]);
+
+  const loadMunicipalityData = useCallback(async () => {
+    const result = await loadData(getCategories);
+    if (result) {
+      await loadCurrentSelectedDiscoveryType();
+    }
+  }, [loadData, loadCurrentSelectedDiscoveryType]);
+
+  const handleRetry = useCallback(async () => {
     closeErrorModal();
-    dataLoadingRef.current = false;
+    resetLoadingFlag();
     await loadMunicipalityData();
-  };
+  }, [closeErrorModal, resetLoadingFlag, loadMunicipalityData]);
 
-  const onEditPreferences = () => {
+  const onEditPreferences = useCallback(() => {
     navigate('/onboarding');
-  };
+  }, [navigate]);
 
+  // Caricamento iniziale - usa un flag per eseguire solo al mount
+  const hasLoadedRef = useRef(false);
   useEffect(() => {
-    loadMunicipalityData();
+    if (!hasLoadedRef.current) {
+      hasLoadedRef.current = true;
+      loadMunicipalityData();
+    }
   }, [loadMunicipalityData]);
 
-  const toggleInterest = (interest: string) => {
+  const toggleInterest = useCallback((interest: string) => {
     // Cannot deselect anything
     if (selectedInterests.includes(interest)) {
       return;
@@ -226,10 +162,12 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
     // Current selection change
     setSelectedInterests([interest]);
     const selectedInterest = interests.find(i => i.name === interest);
-    loadSelectedDiscoveryType(selectedInterest.discoverType);
-  };
+    if (selectedInterest) {
+      loadSelectedDiscoveryType(selectedInterest.discoverType);
+    }
+  }, [selectedInterests, interests, loadSelectedDiscoveryType]);
 
-  const handleSendMessage = () => {
+  const handleSendMessage = useCallback(() => {
     if (chatInput.trim()) {
       setChatMessages(prev => [...prev, { text: chatInput, isUser: true }]);
       
@@ -245,12 +183,12 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
       
       setChatInput('');
     }
-  };
+  }, [chatInput]);
 
-  const getFilteredContent = () => {
+  const getFilteredContent = useCallback(() => {
     if (!discoveryData || !Array.isArray(discoveryData)) return [];
 
-    const out = discoveryData.map(item => ({
+    return discoveryData.map(item => ({
       ...item,
       id: item.entityId,
       title: item.entityName,
@@ -259,12 +197,11 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
       image: getMediaUrl(item.imagePath),
       date: item.date
     }));
-    
-    return out;
-  };
+  }, [discoveryData]);
 
-  const filteredContent = getFilteredContent();
+  const filteredContent = useMemo(() => getFilteredContent(), [getFilteredContent]);
 
+  // Pull-to-refresh: usa ref per evitare ricreazione listener
   useEffect(() => {
     let touchStartY = 0;
     let touchEndY = 0;
@@ -275,10 +212,6 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
 
     const handleTouchEnd = (e: TouchEvent) => {
       touchEndY = e.changedTouches[0].screenY;
-      handleSwipe();
-    };
-
-    const handleSwipe = () => {
       // Swipe down (pull-to-refresh gesture)
       if (touchEndY > touchStartY + 50) {
         loadMunicipalityData();
@@ -549,25 +482,29 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
         onClose={closeWorkInProgressModal}
         cancelLabel="Chiudi"
       />
+
+      {/* Load discovery type Modal error */}
+      <ErrorModal
+        isOpen={showLoadDiscoveryTypeErrorModal}
+        title="Errore server"
+        message="Errore durante il caricamento dei dati"
+        onClose={closeLoadDiscoveryTypeErrorModal}
+        onRetry={loadCurrentSelectedDiscoveryType}
+        retryLabel="Riprova"
+        cancelLabel="Chiudi"
+      />
+      
     </div>
   );
 }
 
-interface RecommendationCardProps {
-  recommendation: {
-    id: string;
-    title: string;
-    category: string;
-    location: string;
-    image: string;
-    date?: string;
-  };
-  onClick: (recommendation: DiscoverItem) => void;
-}
+const RecommendationCard = memo(function RecommendationCard({ recommendation, onClick }: RecommendationCardProps) {
+  const handleClick = useCallback(() => {
+    onClick(recommendation);
+  }, [onClick, recommendation]);
 
-function RecommendationCard({ recommendation, onClick }: RecommendationCardProps) {
   return (
-    <div onClick={onClick} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow cursor-pointer">
+    <div onClick={handleClick} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow cursor-pointer">
       <div className="h-36 sm:h-40 md:h-48 bg-gray-200 overflow-hidden">
         <img
           src={recommendation.image}
@@ -603,4 +540,4 @@ function RecommendationCard({ recommendation, onClick }: RecommendationCardProps
       </div>
     </div>
   );
-}
+});

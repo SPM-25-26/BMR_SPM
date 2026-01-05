@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import {
   ArrowRight,
   ArrowLeft,
@@ -19,24 +19,43 @@ import {
   Leaf,
 } from "lucide-react";
 import logoImage from "figma:asset/958defa264c22f47e7a42e2e88ba5be34b61d176.png";
+import { getCategories, type Category } from '../api/infoApi';
+import LoadingSpinner from './ui/LoadingSpinner';
+import ErrorModal from './ui/ErrorModal';
+import { useApiDataLoader } from '../hooks/useApiDataLoader';
 
 interface OnboardingWizardProps {
   userName: string;
   onComplete: () => void;
+  onLogout: () => void;
 }
 
 export default function OnboardingWizard({
   userName,
   onComplete,
+  onLogout
 }: OnboardingWizardProps) {
   const [currentStep, setCurrentStep] = useState(1);
-  const [selectedInterests, setSelectedInterests] = useState<
-    string[]
-  >([]);
+  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [travelStyle, setTravelStyle] = useState<string>("");
-  const [dietaryNeeds, setDietaryNeeds] = useState<string[]>(
-    [],
-  );
+  const [dietaryNeeds, setDietaryNeeds] = useState<string[]>([]);
+
+  const cachedCategories = useRef<Array<Category> | null>(null);
+
+  const { 
+    isLoading, 
+    errorState, 
+    showErrorModal, 
+    loadData, 
+    closeErrorModal, 
+    resetLoadingFlag 
+  } = useApiDataLoader<Array<Category>>({ 
+    onLogout,
+    onSuccess: async (categories) => {
+      cachedCategories.current = categories;
+      console.log('Categories loaded for onboarding');
+    }
+  });
 
   const interests = [
     {
@@ -120,6 +139,24 @@ export default function OnboardingWizard({
     }
     return true; // Steps 2 and 3 are optional
   };
+
+  const loadOnboardingData = useCallback(async () => {
+    await loadData(getCategories);
+  }, [loadData]);
+
+  const handleRetry = async () => {
+    closeErrorModal();
+    resetLoadingFlag();
+    await loadData(getCategories);
+  };
+
+  useEffect(() => {
+    loadOnboardingData();
+  }, [loadOnboardingData]);
+
+  if (isLoading) {
+    return <LoadingSpinner message="Caricamento dati in corso..." />;
+  }
 
   return (
     <div className="flex flex-col min-h-screen bg-[#f5f5f5]">
@@ -447,6 +484,19 @@ export default function OnboardingWizard({
           </button>
         </div>
       </div>
+
+      {/* Error Modal */}
+      {errorState && (
+        <ErrorModal
+          isOpen={showErrorModal}
+          title={errorState.title}
+          message={errorState.message}
+          onClose={closeErrorModal}
+          onRetry={handleRetry}
+          retryLabel="Riprova"
+          cancelLabel="Chiudi"
+        />
+      )}
     </div>
   );
 }
