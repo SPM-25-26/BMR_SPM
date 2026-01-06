@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { invokeApi, ApiErrorWithResponse, type ApiResponse } from './apiUtils';
+import { invokeApi, ApiErrorWithResponse, type ApiResponse, type UserPreferences } from './apiUtils';
 
 const API_BASE = '/api/Authentication';
 
@@ -25,7 +25,7 @@ interface GoogleLoginInput {
 
 export interface LoginResponse extends ApiResponse {
   result: string;
-  userPreferences: unknown;
+  userPreferences: UserPreferences;
 }
 
 interface PasswordResetInput {
