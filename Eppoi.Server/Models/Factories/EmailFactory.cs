@@ -10,7 +10,7 @@ namespace eppoi.Server.Models.Factories
 
         public static Email Registration(User user)
         {
-            string body = LoadEmbeddedTemplate("eppoi.Server.EmailTemplates.Registration.html")
+            string body = LoadEmbeddedTemplate("eppoi.Server.Models.Authentication.EmailTemplates.Registration.html")
                 .Replace("{{Name}}", user.Name);
 
             Email email = new()
@@ -24,7 +24,7 @@ namespace eppoi.Server.Models.Factories
 
         public static Email Confirmation(User user, string token)
         {
-            string body = LoadEmbeddedTemplate("eppoi.Server.EmailTemplates.Confirmation.html")
+            string body = LoadEmbeddedTemplate("eppoi.Server.Models.Authentication.EmailTemplates.Confirmation.html")
                 .Replace("{{Name}}", user.Name)
                 .Replace("{{UserId}}", Uri.EscapeDataString(user.Id))
                 .Replace("{{Token}}", Uri.EscapeDataString(token));
@@ -40,7 +40,7 @@ namespace eppoi.Server.Models.Factories
 
         public static Email PasswordReset(User user, string token)
         {
-            string body = LoadEmbeddedTemplate("eppoi.Server.EmailTemplates.PasswordReset.html")
+            string body = LoadEmbeddedTemplate("eppoi.Server.Models.Authentication.EmailTemplates.PasswordReset.html")
                 .Replace("{{Name}}", user.Name)
                 .Replace("{{UserId}}", Uri.EscapeDataString(user.Id))
                 .Replace("{{Token}}", Uri.EscapeDataString(token));
