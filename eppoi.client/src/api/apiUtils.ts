@@ -1,9 +1,25 @@
 import axios from 'axios';
+import type { EnumType } from '@ncoderz/superenum';
 
 // Tipo generico per le risposte API
 export interface ApiResponse {
   success: boolean;
   result: unknown;
+}
+
+const TravellerType = {
+  Solo: 0,
+  Couple: 1,
+  Family: 2,
+  FriendsGroup: 3
+}
+
+type TravellerType = EnumType<typeof TravellerType>;
+
+export interface UserPreferences {
+  interests: string[];
+  travelStyle: TravellerType;
+  dietaryNeeds: string[];
 }
 
 // Classe di errore personalizzata

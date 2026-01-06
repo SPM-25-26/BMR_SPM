@@ -1,6 +1,5 @@
 import { defineMock } from 'vite-plugin-mock-dev-server';
-
-const useMock = import.meta.env.VITE_USE_MOCK_API === 'true';
+import { mockStorage, useMock } from './mockUtils';
 
 export default defineMock([{
     url: '/api/Info/GetMunicipalityInfo',
@@ -910,4 +909,24 @@ export default defineMock([{
       "isFaulted": false
     }
   }
-}]);
+},
+{
+  url: '/api/LocalInfo/UpdateUserPreferences',
+  method: 'PUT',
+  status: 200,
+  enabled: useMock,
+  body: (request: RequestOptions) => {
+    console.error('Mocked UpdateUserPreferences API called');
+    console.log(request.body);
+    const userPreferencesString = JSON.stringify(request.body.userPreferences);
+    mockStorage.set('mockUserPreferences', userPreferencesString);
+    console.error('>>>> preferences in mockStorage SAVED <<<');
+    console.log(userPreferencesString);
+    
+    const output = {
+      success: true,
+      result: true,
+    };
+    return output;
+  }
+  }]);          

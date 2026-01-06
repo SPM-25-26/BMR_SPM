@@ -2,11 +2,7 @@
 //process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 import { defineMock, RequestOptions } from 'vite-plugin-mock-dev-server';
-
-const useMock = import.meta.env.VITE_USE_MOCK_API === 'true';
-
-// Storage in-memory (viene perso al riavvio del server)
-const mockStorage = new Map<string, any>();
+import { mockStorage, useMock } from './mockUtils';
 
 export default defineMock({
   url: '/api/Authentication/GoogleLogin',
@@ -18,6 +14,8 @@ export default defineMock({
     
     let userPreferences = null;
     const userPreferencesString = mockStorage.get('mockUserPreferences');
+    console.error('>>>> preferences in mockStorage <<<');
+    console.log(userPreferencesString);
     if (userPreferencesString) {
       userPreferences = JSON.parse(userPreferencesString);
     }

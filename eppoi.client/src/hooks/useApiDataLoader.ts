@@ -6,12 +6,18 @@ interface ErrorState {
   message: string;
 }
 
+interface CustomErrorMessages {
+  title?: string;
+  message?: string;
+}
+
 interface UseApiDataLoaderOptions<T> {
   onLogout: () => void;
   onSuccess?: (data: T) => void | Promise<void>;
+  customErrorMessages?: CustomErrorMessages;
 }
 
-export function useApiDataLoader<T>({ onLogout, onSuccess }: UseApiDataLoaderOptions<T>) {
+export function useApiDataLoader<T>({ onLogout, onSuccess, customErrorMessages }: UseApiDataLoaderOptions<T>) {
   const [isLoading, setIsLoading] = useState(true);
   const [errorState, setErrorState] = useState<ErrorState | null>(null);
   const [showErrorModal, setShowErrorModal] = useState(false);
@@ -32,17 +38,17 @@ export function useApiDataLoader<T>({ onLogout, onSuccess }: UseApiDataLoaderOpt
       }
 
       setErrorState({
-        title: 'Errore Server',
-        message: error.message || 'Si è verificato un errore durante il caricamento dei dati. Riprova tra qualche minuto.'
+        title: customErrorMessages?.title || 'Errore Server',
+        message: customErrorMessages?.message || error.message || 'Si è verificato un errore durante il caricamento dei dati. Riprova tra qualche minuto.'
       });
     } else {
       setErrorState({
-        title: 'Errore Sconosciuto',
-        message: 'Si è verificato un errore imprevisto.'
+        title: customErrorMessages?.title || 'Errore Sconosciuto',
+        message: customErrorMessages?.message || 'Si è verificato un errore imprevisto.'
       });
     }
     setShowErrorModal(true);
-  }, [onLogout]);
+  }, [onLogout, customErrorMessages]);
 
   const loadData = useCallback(async <R>(
     apiCall: () => Promise<R>,
@@ -69,8 +75,8 @@ export function useApiDataLoader<T>({ onLogout, onSuccess }: UseApiDataLoaderOpt
         success = true;
       } else {
         setErrorState({
-          title: options?.errorTitle || 'Errore nel caricamento',
-          message: options?.errorMessage || 'Non è stato possibile caricare i dati del comune. Riprova.'
+          title: options?.errorTitle || customErrorMessages?.title || 'Errore nel caricamento',
+          message: options?.errorMessage || customErrorMessages?.message || 'Non è stato possibile caricare i dati del comune. Riprova.'
         });
         setShowErrorModal(true);
       }
@@ -86,7 +92,7 @@ export function useApiDataLoader<T>({ onLogout, onSuccess }: UseApiDataLoaderOpt
     }
 
     return result;
-  }, [showServerError]);
+  }, [showServerError, customErrorMessages]);
 
   const closeErrorModal = useCallback(() => {
     setShowErrorModal(false);

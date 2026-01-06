@@ -1,6 +1,6 @@
 import axios from 'axios';
 import type { EnumType } from '@ncoderz/superenum';
-import { invokeApi, type ApiResponse, STORAGE_AUTHTOKEN_KEY } from './apiUtils';
+import { invokeApi, type ApiResponse, STORAGE_AUTHTOKEN_KEY, type UserPreferences } from './apiUtils';
 
 const API_BASE = '/api/LocalInfo';
 
@@ -88,4 +88,13 @@ export async function getPoiDetail(id: string): Promise<GetPoiResponse> {
   return invokeApi(async () => {
     return await apiClient.get<GetPoiResponse>('/GetPOIById?id=' + id);
   }, 'Errore durante il recupero delle categorie');
+}
+
+export async function updateUserPreferences(userId: string, userPreferences: UserPreferences): Promise<ApiResponse> {
+  return invokeApi(async () => {
+    return await apiClient.put<ApiResponse>('/UpdateUserPreferences', {
+      userId,
+      userPreferences
+    });
+  }, 'Errore durante l\'aggiornamento delle preferenze utente');
 }

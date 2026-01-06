@@ -17,65 +17,106 @@ import {
   WheatOff,
   Milk,
   Leaf,
+  Trees,
+  BriefcaseBusiness,
+  Ham,
+  Info
 } from "lucide-react";
 import logoImage from "figma:asset/958defa264c22f47e7a42e2e88ba5be34b61d176.png";
-import { getCategories, type Category } from '../api/infoApi';
+import { getCategories, updateUserPreferences, type Category } from '../api/infoApi';
 import LoadingSpinner from './ui/LoadingSpinner';
 import ErrorModal from './ui/ErrorModal';
 import { useApiDataLoader } from '../hooks/useApiDataLoader';
 
 interface OnboardingWizardProps {
-  userName: string;
+  user: {
+    name: string;
+    userName: string;
+    email: string;
+  };
+  userPreferences?: {
+    interests: string[];
+    travelStyle: string;
+    dietaryNeeds: string[];
+  } | null;
   onComplete: () => void;
   onLogout: () => void;
 }
 
 export default function OnboardingWizard({
-  userName,
+  user,
+  userPreferences,
   onComplete,
   onLogout
 }: OnboardingWizardProps) {
   const [currentStep, setCurrentStep] = useState(1);
-  const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
-  const [travelStyle, setTravelStyle] = useState<string>("");
-  const [dietaryNeeds, setDietaryNeeds] = useState<string[]>([]);
+  const [selectedInterests, setSelectedInterests] = useState<string[]>(
+    userPreferences?.interests || []
+  );
+  const [travelStyle, setTravelStyle] = useState<string>(
+    userPreferences?.travelStyle || ""
+  );
+  const [dietaryNeeds, setDietaryNeeds] = useState<string[]>(
+    userPreferences?.dietaryNeeds || []
+  );
+  const [isSavingPreferences, setIsSavingPreferences] = useState(false);
 
   const cachedCategories = useRef<Array<Category> | null>(null);
 
-  const { 
-    isLoading, 
-    errorState, 
-    showErrorModal, 
-    loadData, 
-    closeErrorModal, 
-    resetLoadingFlag 
-  } = useApiDataLoader<Array<Category>>({ 
+  const {
+    isLoading,
+    errorState,
+    showErrorModal,
+    loadData,
+    closeErrorModal,
+    resetLoadingFlag
+  } = useApiDataLoader<Array<Category>>({
     onLogout,
     onSuccess: async (categories) => {
-      cachedCategories.current = categories;
-      console.log('Categories loaded for onboarding');
+      cachedCategories.current = categories.result;
+      console.error('Categories loaded for onboarding');
+      console.log(cachedCategories.current);
     }
   });
 
+  const {
+    errorState: saveErrorState,
+    showErrorModal: showSaveErrorModal,
+    loadData: saveData,
+    closeErrorModal: closeSaveErrorModal,
+  } = useApiDataLoader<unknown>({
+    onLogout,
+    onSuccess: async () => {
+      console.log('Preferenze utente salvate con successo');
+      onComplete({ interests: selectedInterests, travelStyle: travelStyle, dietaryNeeds: dietaryNeeds });
+    },
+    customErrorMessages: {
+      title: "Errore nel salvataggio",
+      message: "Non è stato possibile salvare le tue preferenze. Verifica la connessione e riprova."
+    }
+  });
+
+  /** This is to map categories with icons, because unfortunately icons by Eppoi webservices still don't work */
   const interests = [
     {
-      id: "arte-cultura",
-      name: "Arte e cultura",
+      id: "ArtCulture",
       icon: Landmark,
     },
     {
-      id: "magazine",
-      name: "Articoli e magazine",
+      id: "Articles",
       icon: Newspaper,
     },
-    { id: "dormire", name: "Dormire", icon: Hotel },
-    { id: "eventi", name: "Eventi", icon: Calendar },
-    { id: "itinerari", name: "Itinerari", icon: MapPin },
-    { id: "mangiare", name: "Mangiare e bere", icon: Utensils },
-    { id: "shopping", name: "Shopping", icon: ShoppingBag },
+    { id: "Sleep", icon: Hotel },
+    { id: "Events", name: "Eventi", icon: Calendar },
+    { id: "Routes", icon: MapPin },
+    { id: "EatAndDrink", icon: Utensils },
+    { id: "Nature", icon: Trees },
+    { id: "Organizations", icon: BriefcaseBusiness },
+    { id: "TypicalProducts", icon: Ham },
+    { id: "Shopping", icon: ShoppingBag },
+    { id: "Services", icon: Info },
     {
-      id: "svago",
-      name: "Svago e divertimento",
+      id: "EntertainmentLeisure",
       icon: Sparkles,
     },
   ];
@@ -113,7 +154,30 @@ export default function OnboardingWizard({
     );
   };
 
-  const handleNext = () => {
+  const convertTravelStyleToEnum = (style: string): number => {
+    const mapping: { [key: string]: number } = {
+      'solo': 0,
+      'coppia': 1,
+      'famiglia': 2,
+      'amici': 3
+    };
+    return mapping[style] ?? 0;
+  };
+
+  const saveUserPreferences = async () => {
+    setIsSavingPreferences(true);
+    try {
+      await saveData(() => updateUserPreferences(user.userName, {
+        interests: selectedInterests,
+        travelStyle: convertTravelStyleToEnum(travelStyle),
+        dietaryNeeds: dietaryNeeds
+      }));
+    } finally {
+      setIsSavingPreferences(false);
+    }
+  };
+
+  const handleNext = async () => {
     if (currentStep < 3) {
       setCurrentStep(currentStep + 1);
     } else {
@@ -123,7 +187,7 @@ export default function OnboardingWizard({
         travelStyle,
         dietaryNeeds,
       });
-      onComplete({ interests: selectedInterests, travelStyle: travelStyle, dietaryNeeds: dietaryNeeds });
+      await saveUserPreferences();
     }
   };
 
@@ -150,12 +214,17 @@ export default function OnboardingWizard({
     await loadData(getCategories);
   };
 
+  const handleSaveRetry = async () => {
+    closeSaveErrorModal();
+    await saveUserPreferences();
+  };
+
   useEffect(() => {
     loadOnboardingData();
   }, [loadOnboardingData]);
 
-  if (isLoading) {
-    return <LoadingSpinner message="Caricamento dati in corso..." />;
+  if (isLoading || isSavingPreferences) {
+    return <LoadingSpinner message={isSavingPreferences ? "Salvataggio preferenze..." : "Caricamento dati in corso..."} />;
   }
 
   return (
@@ -186,11 +255,10 @@ export default function OnboardingWizard({
                   className="flex flex-col items-center flex-shrink-0"
                 >
                   <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
-                      currentStep >= item.step
+                    className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${currentStep >= item.step
                         ? "bg-[#0066cc] text-white"
                         : "bg-gray-200 text-gray-500"
-                    }`}
+                      }`}
                   >
                     {currentStep > item.step ? (
                       <Check className="w-5 h-5" />
@@ -201,11 +269,10 @@ export default function OnboardingWizard({
                     )}
                   </div>
                   <span
-                    className={`text-[12px] sm:text-[14px] mt-2 whitespace-nowrap ${
-                      currentStep === item.step
+                    className={`text-[12px] sm:text-[14px] mt-2 whitespace-nowrap ${currentStep === item.step
                         ? 'text-[#0066cc] font-["Titillium_Web:SemiBold",sans-serif]'
                         : 'text-gray-600 font-["Titillium_Web:Regular",sans-serif]'
-                    }`}
+                      }`}
                   >
                     {item.label}
                   </span>
@@ -213,11 +280,10 @@ export default function OnboardingWizard({
                 {index < 2 && (
                   <div
                     key={`bar-${item.step}`}
-                    className={`flex-1 h-1 mx-3 mt-5 transition-all ${
-                      currentStep > item.step
+                    className={`flex-1 h-1 mx-3 mt-5 transition-all ${currentStep > item.step
                         ? "bg-[#0066cc]"
                         : "bg-gray-200"
-                    }`}
+                      }`}
                   />
                 )}
               </>
@@ -234,7 +300,7 @@ export default function OnboardingWizard({
             <div className="space-y-4 sm:space-y-6">
               <div className="text-center mb-6 sm:mb-8">
                 <h1 className="text-[24px] sm:text-[28px] md:text-[32px] text-[#004d99] font-['Titillium_Web:Bold',sans-serif] mb-2">
-                  Ciao {userName}! 👋
+                  Ciao {user?.name}! 👋
                 </h1>
                 <p className="text-[16px] sm:text-[18px] text-gray-700 font-['Titillium_Web:Regular',sans-serif]">
                   Personalizza la tua esperienza.
@@ -248,22 +314,25 @@ export default function OnboardingWizard({
               </div>
 
               <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                {interests.map((interest) => {
-                  const Icon = interest.icon;
+                {cachedCategories.current?.map((category) => {
+                  // Find matching interes for icon
+                  const matchingInterest = interests.find(
+                    (interest) => interest.id === category.name
+                  );
+                  const Icon = matchingInterest?.icon;
                   const isSelected = selectedInterests.includes(
-                    interest.id,
+                    category.name,
                   );
                   return (
                     <button
-                      key={interest.id}
+                      key={category.name}
                       onClick={() =>
-                        toggleInterest(interest.id)
+                        toggleInterest(category.name)
                       }
-                      className={`relative p-4 sm:p-6 rounded-xl border-2 transition-all duration-200 ${
-                        isSelected
+                      className={`relative p-4 sm:p-6 rounded-xl border-2 transition-all duration-200 ${isSelected
                           ? "border-[#0066cc] bg-[#e6f2ff] shadow-lg"
                           : "border-gray-200 bg-white hover:border-[#0066cc] hover:shadow-md"
-                      }`}
+                        }`}
                     >
                       {isSelected && (
                         <div className="absolute top-2 right-2 w-6 h-6 bg-[#0066cc] rounded-full flex items-center justify-center">
@@ -272,28 +341,27 @@ export default function OnboardingWizard({
                       )}
                       <div className="flex flex-col items-center text-center gap-2 sm:gap-3">
                         <div
-                          className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center ${
-                            isSelected
+                          className={`w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center ${isSelected
                               ? "bg-[#0066cc]"
                               : "bg-[#e6f2ff]"
-                          }`}
-                        >
-                          <Icon
-                            className={`w-6 h-6 sm:w-7 sm:h-7 ${
-                              isSelected
-                                ? "text-white"
-                                : "text-[#0066cc]"
                             }`}
-                          />
+                        >
+                          {Icon && (
+                            <Icon
+                              className={`w-6 h-6 sm:w-7 sm:h-7 ${isSelected
+                                  ? "text-white"
+                                  : "text-[#0066cc]"
+                                }`}
+                            />
+                          )}
                         </div>
                         <span
-                          className={`text-[14px] sm:text-[16px] font-['Titillium_Web:SemiBold',sans-serif] ${
-                            isSelected
+                          className={`text-[14px] sm:text-[16px] font-['Titillium_Web:SemiBold',sans-serif] ${isSelected
                               ? "text-[#004d99]"
                               : "text-gray-700"
-                          }`}
+                            }`}
                         >
-                          {interest.name}
+                          {category.label}
                         </span>
                       </div>
                     </button>
@@ -329,11 +397,10 @@ export default function OnboardingWizard({
                       onClick={() =>
                         selectTravelStyle(style.id)
                       }
-                      className={`relative p-5 sm:p-6 rounded-xl border-2 transition-all duration-200 ${
-                        isSelected
+                      className={`relative p-5 sm:p-6 rounded-xl border-2 transition-all duration-200 ${isSelected
                           ? "border-[#0066cc] bg-[#e6f2ff] shadow-lg"
                           : "border-gray-200 bg-white hover:border-[#0066cc] hover:shadow-md"
-                      }`}
+                        }`}
                     >
                       {isSelected && (
                         <div className="absolute top-3 right-3 w-6 h-6 bg-[#0066cc] rounded-full flex items-center justify-center">
@@ -342,26 +409,23 @@ export default function OnboardingWizard({
                       )}
                       <div className="flex items-center gap-4">
                         <div
-                          className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center flex-shrink-0 ${
-                            isSelected
+                          className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center flex-shrink-0 ${isSelected
                               ? "bg-[#0066cc]"
                               : "bg-[#e6f2ff]"
-                          }`}
+                            }`}
                         >
                           <Icon
-                            className={`w-7 h-7 sm:w-8 sm:h-8 ${
-                              isSelected
+                            className={`w-7 h-7 sm:w-8 sm:h-8 ${isSelected
                                 ? "text-white"
                                 : "text-[#0066cc]"
-                            }`}
+                              }`}
                           />
                         </div>
                         <span
-                          className={`text-[16px] sm:text-[18px] font-['Titillium_Web:SemiBold',sans-serif] text-left ${
-                            isSelected
+                          className={`text-[16px] sm:text-[18px] font-['Titillium_Web:SemiBold',sans-serif] text-left ${isSelected
                               ? "text-[#004d99]"
                               : "text-gray-700"
-                          }`}
+                            }`}
                         >
                           {style.name}
                         </span>
@@ -401,11 +465,10 @@ export default function OnboardingWizard({
                       onClick={() =>
                         toggleDietaryNeed(option.id)
                       }
-                      className={`relative p-5 sm:p-6 rounded-xl border-2 transition-all duration-200 ${
-                        isSelected
+                      className={`relative p-5 sm:p-6 rounded-xl border-2 transition-all duration-200 ${isSelected
                           ? "border-[#0066cc] bg-[#e6f2ff] shadow-lg"
                           : "border-gray-200 bg-white hover:border-[#0066cc] hover:shadow-md"
-                      }`}
+                        }`}
                     >
                       {isSelected && (
                         <div className="absolute top-3 right-3 w-6 h-6 bg-[#0066cc] rounded-full flex items-center justify-center">
@@ -414,26 +477,23 @@ export default function OnboardingWizard({
                       )}
                       <div className="flex items-center gap-4">
                         <div
-                          className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center flex-shrink-0 ${
-                            isSelected
+                          className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full flex items-center justify-center flex-shrink-0 ${isSelected
                               ? "bg-[#0066cc]"
                               : "bg-[#e6f2ff]"
-                          }`}
+                            }`}
                         >
                           <Icon
-                            className={`w-7 h-7 sm:w-8 sm:h-8 ${
-                              isSelected
+                            className={`w-7 h-7 sm:w-8 sm:h-8 ${isSelected
                                 ? "text-white"
                                 : "text-[#0066cc]"
-                            }`}
+                              }`}
                           />
                         </div>
                         <span
-                          className={`text-[16px] sm:text-[18px] font-['Titillium_Web:SemiBold',sans-serif] text-left ${
-                            isSelected
+                          className={`text-[16px] sm:text-[18px] font-['Titillium_Web:SemiBold',sans-serif] text-left ${isSelected
                               ? "text-[#004d99]"
                               : "text-gray-700"
-                          }`}
+                            }`}
                         >
                           {option.name}
                         </span>
@@ -471,11 +531,10 @@ export default function OnboardingWizard({
           <button
             onClick={handleNext}
             disabled={!canProceed()}
-            className={`flex-1 flex items-center justify-center gap-2 px-5 sm:px-6 py-3 sm:py-3.5 rounded-lg transition-all font-['Titillium_Web:SemiBold',sans-serif] text-[16px] sm:text-[18px] ${
-              canProceed()
+            className={`flex-1 flex items-center justify-center gap-2 px-5 sm:px-6 py-3 sm:py-3.5 rounded-lg transition-all font-['Titillium_Web:SemiBold',sans-serif] text-[16px] sm:text-[18px] ${canProceed()
                 ? "bg-[#0066cc] text-white hover:bg-[#004d99] shadow-md"
                 : "bg-gray-300 text-gray-500 cursor-not-allowed"
-            }`}
+              }`}
           >
             {currentStep === 3 ? "Completa" : "Avanti"}
             {currentStep < 3 && (
@@ -485,7 +544,7 @@ export default function OnboardingWizard({
         </div>
       </div>
 
-      {/* Error Modal */}
+      {/* Error Modal for loading categories */}
       {errorState && (
         <ErrorModal
           isOpen={showErrorModal}
@@ -493,6 +552,19 @@ export default function OnboardingWizard({
           message={errorState.message}
           onClose={closeErrorModal}
           onRetry={handleRetry}
+          retryLabel="Riprova"
+          cancelLabel="Chiudi"
+        />
+      )}
+
+      {/* Error Modal for saving preferences */}
+      {saveErrorState && (
+        <ErrorModal
+          isOpen={showSaveErrorModal}
+          title={saveErrorState.title}
+          message={saveErrorState.message}
+          onClose={closeSaveErrorModal}
+          onRetry={handleSaveRetry}
           retryLabel="Riprova"
           cancelLabel="Chiudi"
         />
