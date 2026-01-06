@@ -456,6 +456,7 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
           userName={user.name}
           userEmail={user.email}
           userPreferences={userPreferences}
+          categories={cachedCategories.current}
           onEditPreferences={onEditPreferences}
           onClose={() => setIsSettingsOpen(false)}
         />
