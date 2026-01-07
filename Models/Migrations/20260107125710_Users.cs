@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace eppoi.Models.Migrations
 {
     /// <inheritdoc />
-    public partial class Fixed : Migration
+    public partial class Users : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -75,7 +75,6 @@ namespace eppoi.Models.Migrations
                 {
                     Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    CreatedDate = table.Column<DateTime>(type: "datetime", nullable: false),
                     GoogleId = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     UserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
                     NormalizedUserName = table.Column<string>(type: "nvarchar(256)", maxLength: 256, nullable: true),
@@ -383,6 +382,33 @@ namespace eppoi.Models.Migrations
                     table.PrimaryKey("PK_AspNetUserTokens", x => new { x.UserId, x.LoginProvider, x.Name });
                     table.ForeignKey(
                         name: "FK_AspNetUserTokens_AspNetUsers_UserId",
+                        column: x => x.UserId,
+                        principalTable: "AspNetUsers",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Preferences",
+                columns: table => new
+                {
+                    UserId = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    ArtCultures = table.Column<int>(type: "int", nullable: false),
+                    Natures = table.Column<int>(type: "int", nullable: false),
+                    Entertainments = table.Column<int>(type: "int", nullable: false),
+                    Restaurants = table.Column<int>(type: "int", nullable: false),
+                    Sleeps = table.Column<int>(type: "int", nullable: false),
+                    Events = table.Column<int>(type: "int", nullable: false),
+                    Routes = table.Column<int>(type: "int", nullable: false),
+                    Articles = table.Column<int>(type: "int", nullable: false),
+                    Shoppings = table.Column<int>(type: "int", nullable: false),
+                    Organizations = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Preferences", x => x.UserId);
+                    table.ForeignKey(
+                        name: "FK_Preferences_AspNetUsers_UserId",
                         column: x => x.UserId,
                         principalTable: "AspNetUsers",
                         principalColumn: "Id",
@@ -741,6 +767,9 @@ namespace eppoi.Models.Migrations
                 name: "Paragraphs");
 
             migrationBuilder.DropTable(
+                name: "Preferences");
+
+            migrationBuilder.DropTable(
                 name: "Restaurants");
 
             migrationBuilder.DropTable(
@@ -756,9 +785,6 @@ namespace eppoi.Models.Migrations
                 name: "AspNetRoles");
 
             migrationBuilder.DropTable(
-                name: "AspNetUsers");
-
-            migrationBuilder.DropTable(
                 name: "ArtNatures");
 
             migrationBuilder.DropTable(
@@ -769,6 +795,9 @@ namespace eppoi.Models.Migrations
 
             migrationBuilder.DropTable(
                 name: "Articles");
+
+            migrationBuilder.DropTable(
+                name: "AspNetUsers");
 
             migrationBuilder.DropTable(
                 name: "OpeningHours");

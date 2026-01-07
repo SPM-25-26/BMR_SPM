@@ -23,8 +23,7 @@ namespace eppoi.Server.Services
             {
                 UserName = request.UserName,
                 Email = request.Email,
-                Name = request.Name,
-                CreatedDate = DateTime.UtcNow
+                Name = request.Name
             };
 
             user.PasswordHash = _userManager.PasswordHasher.HashPassword(user, request.Password);
@@ -126,7 +125,6 @@ namespace eppoi.Server.Services
                     GoogleId = request.Id,
                     Email = email,
                     Name = request.Name,
-                    CreatedDate = DateTime.UtcNow,
                     EmailConfirmed = true
                 };
 

@@ -16,10 +16,17 @@ namespace eppoi.Models.Data
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
+
             builder.Entity<User>(u =>
             {
-                u.Property(us => us.CreatedDate)
-                    .HasColumnType("datetime");
+                u.HasOne(us => us.Preferences)
+                    .WithOne(p => p.User);
+            });
+
+            builder.Entity<Preferences>(p =>
+            {
+                p.ToTable("Preferences");
+                p.HasKey(p => p.UserId);
             });
 
             builder.Entity<ArtNature>(ac =>
@@ -215,5 +222,6 @@ namespace eppoi.Models.Data
         public DbSet<Shopping> Shoppings { get; set; } = null!;
         public DbSet<Sleep> Sleeps { get; set; } = null!;
         public DbSet<Organization> Organizations { get; set; } = null!;
+        public DbSet<Preferences> Preferences { get; set; } = null!;
     }
 }

@@ -12,8 +12,8 @@ using eppoi.Models.Data;
 namespace eppoi.Models.Migrations
 {
     [DbContext(typeof(ApplicationDBContext))]
-    [Migration("20260107111640_Fixed")]
-    partial class Fixed
+    [Migration("20260107125710_Users")]
+    partial class Users
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -970,6 +970,46 @@ namespace eppoi.Models.Migrations
                     b.ToTable("Sleeps", (string)null);
                 });
 
+            modelBuilder.Entity("eppoi.Models.Entities.Preferences", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("ArtCultures")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Articles")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Entertainments")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Events")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Natures")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Organizations")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Restaurants")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Routes")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Shoppings")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Sleeps")
+                        .HasColumnType("int");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("Preferences", (string)null);
+                });
+
             modelBuilder.Entity("eppoi.Models.Entities.User", b =>
                 {
                     b.Property<string>("Id")
@@ -981,9 +1021,6 @@ namespace eppoi.Models.Migrations
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("datetime");
 
                     b.Property<string>("Email")
                         .HasMaxLength(256)
@@ -1224,6 +1261,17 @@ namespace eppoi.Models.Migrations
                     b.Navigation("Owner");
                 });
 
+            modelBuilder.Entity("eppoi.Models.Entities.Preferences", b =>
+                {
+                    b.HasOne("eppoi.Models.Entities.User", "User")
+                        .WithOne("Preferences")
+                        .HasForeignKey("eppoi.Models.Entities.Preferences", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("eppoi.Models.Entities.Import.ArtNatures.ArtNature", b =>
                 {
                     b.Navigation("Catalogues");
@@ -1268,6 +1316,12 @@ namespace eppoi.Models.Migrations
             modelBuilder.Entity("eppoi.Models.Entities.Import.Routes.StartingPoint", b =>
                 {
                     b.Navigation("Routes");
+                });
+
+            modelBuilder.Entity("eppoi.Models.Entities.User", b =>
+                {
+                    b.Navigation("Preferences")
+                        .IsRequired();
                 });
 #pragma warning restore 612, 618
         }

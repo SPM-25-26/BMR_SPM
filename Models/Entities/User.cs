@@ -8,10 +8,9 @@ namespace eppoi.Models.Entities
         [MaxLength(50)]
         public required string Name { get; set; }
 
-        public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
-
         public string? GoogleId { get; set; } = null;
 
+        public virtual Preferences Preferences { get; set; } = null!;
 
     }
 }
