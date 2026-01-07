@@ -1,8 +1,7 @@
-import type { EnumType } from '@ncoderz/superenum';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useState, useEffect, useRef } from 'react';
-import { STORAGE_AUTHTOKEN_KEY } from './api/apiUtils';
+import { STORAGE_AUTHTOKEN_KEY, type UserPreferences } from './api/apiUtils';
 import ForgotPasswordPage from './components/ForgotPasswordPage';
 import EmailVerification from './components/EmailVerification';
 import EmailVerificationRequired from './components/EmailVerificationRequired';
@@ -21,21 +20,6 @@ interface User {
     emailConfirmed: boolean;
 }
 
-const TravellerType = {
-  Solo: 0,
-  Couple: 1,
-  Family: 2,
-  FriendsGroup: 3
-}
-
-type TravellerType = EnumType<typeof TravellerType>;
-
-interface UserPreferences {
-  interests: string[];
-  travelStyle: TravellerType;
-  dietaryNeeds: string[];
-}
-
 const STORAGE_USER_KEY = 'authenticatedUser';
 const STORAGE_USERPREFERENCES_KEY = 'userPreferences';
 const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
@@ -46,13 +30,19 @@ interface ProtectedRouteProps {
     user: User | null;
 }
 
+interface UserConfirmedRouteProps {
+  children: React.ReactNode;
+  user: User | null;
+  userPreferences: UserPreferences;
+}
+
 // Registered user rout - needs a registered, mail verified user
 function RegisteredUserRoute({ children, user }: ProtectedRouteProps) {
   return user ? (user.emailConfirmed ? children : <Navigate to="/needs-verification" replace />) : <Navigate to="/welcome" replace />;
 }
 
 // Protected route - needs a registered, mail verified user, that already has set his preferences
-function ProtectedRoute({ children, user, userPreferences }: ProtectedRouteProps) {
+function ProtectedRoute({ children, user, userPreferences }: UserConfirmedRouteProps) {
   if (!user) {
     return <Navigate to="/welcome" replace />;
 }
@@ -60,7 +50,7 @@ function ProtectedRoute({ children, user, userPreferences }: ProtectedRouteProps
   if (!user.emailConfirmed) {
     return <Navigate to="/needs-verification" replace />;
   }
-
+  
   let hasPreferences = false;
   if (userPreferences) {
     hasPreferences = Array.isArray(userPreferences.interests) && userPreferences.interests.length > 0;
@@ -206,7 +196,8 @@ export default function App() {
                         element={
                             <RegisteredUserRoute user={user}>
                                 <OnboardingWizard 
-                                    userName={user?.name || ''} 
+                                    user={user}
+                                    userPreferences={userPreferences}
                                     onLogout={handleLogout}
                                     onComplete={handleOnboardingComplete} 
                                 />

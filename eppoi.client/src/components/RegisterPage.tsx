@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { UserPlus, ArrowLeft } from 'lucide-react';
 import logoImage from 'figma:asset/958defa264c22f47e7a42e2e88ba5be34b61d176.png';
+import { type UserPreferences } from '../api/apiUtils';
 import { registerUser, ApiErrorWithResponse } from '../api/authApi';
 import PasswordInput from './ui/PasswordInput';
 import LoadingSpinner from './ui/LoadingSpinner';
@@ -9,7 +10,7 @@ import ValidationErrorsList from './ui/ValidationErrorsList';
 import ErrorModal from './ui/ErrorModal';
 
 interface RegisterPageProps {
-  onRegister: (userData: { name: string; userName: string; email: string }) => void;
+  onRegister: (userData: { name: string; userName: string; email: string }, userPreferences: UserPreferences | null) => void;
 }
 
 type ErrorType = 'duplicate-user' | 'server-error' | null;
@@ -144,8 +145,9 @@ export default function RegisterPage({ onRegister }: RegisterPageProps) {
         });
 
         if (response.success) {          
-          onRegister(response.result);
-          // Naviga automaticamente a / dopo la registrazione riuscita
+          // Newly-registered user - of course without preferences
+          onRegister(response.result, null);
+          
           navigate('/');
         } else {
           handleApiError(response.result.errors);

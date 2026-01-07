@@ -2,6 +2,7 @@ import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, ArrowLeft } from 'lucide-react';
 import logoImage from 'figma:asset/958defa264c22f47e7a42e2e88ba5be34b61d176.png';
+import { type UserPreferences } from '../api/apiUtils';
 import { loginUser, ApiErrorWithResponse } from '../api/authApi';
 import PasswordInput from './ui/PasswordInput';
 import LoadingSpinner from './ui/LoadingSpinner';
@@ -10,7 +11,7 @@ import ErrorModal from './ui/ErrorModal';
 import { decodeJwt } from './ui/utils';
 
 interface LoginPageProps {
-  onLogin: (userData: { name: string; userName: string; email: string, emailConfirmed: boolean }) => void;
+  onLogin: (userData: { name: string; userName: string; email: string, emailConfirmed: boolean }, userPreferences: UserPreferences | null) => void;
 }
 
 interface ErrorState {
@@ -66,13 +67,15 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
           
           if (jwtPayload) {
             localStorage.setItem('authToken', response.result);
+            //TODO - change when login API ready with user preferences
+            const userPreferences = response.userPreferences ? response.userPreferences : null;
 
             onLogin({
               name: jwtPayload.Name,
               userName: jwtPayload.UserName,
               email: email,
               emailConfirmed: true
-            });
+            }, userPreferences);
 
             navigate('/home');
           } else {

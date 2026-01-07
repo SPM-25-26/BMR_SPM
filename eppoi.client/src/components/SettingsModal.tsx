@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { X, User, Mail, Landmark, Newspaper, Hotel, Calendar, MapPin, Utensils, ShoppingBag, Sparkles, Users, UsersRound, WheatOff, Milk, Leaf, Edit } from 'lucide-react';
+import { type Category } from '../api/infoApi';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -11,6 +12,7 @@ interface SettingsModalProps {
     travelStyle: string;
     dietaryNeeds: string[];
   };
+  categories: Array<Category> | null;
   onEditPreferences: () => void;
 }
 
@@ -20,6 +22,7 @@ export default function SettingsModal({
   userName,
   userEmail,
   userPreferences,
+  categories,
   onEditPreferences,
 }: SettingsModalProps) {
   // Blocca lo scroll del body quando il modal è aperto
@@ -29,7 +32,7 @@ export default function SettingsModal({
     } else {
       document.body.style.overflow = '';
     }
-    
+
     // Cleanup: ripristina lo scroll quando il componente viene smontato
     return () => {
       document.body.style.overflow = '';
@@ -141,13 +144,11 @@ export default function SettingsModal({
                   {userPreferences.interests.map((interestId) => {
                     const interest = interestsMap[interestId];
                     if (!interest) return null;
-                    const Icon = interest.icon;
                     return (
                       <div
                         key={interestId}
-                        className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-[#e6f2ff] border border-[#0066cc] rounded-full"
+                        className="px-3 sm:px-4 py-2 bg-[#e6f2ff] border border-[#0066cc] rounded-full"
                       >
-                        <Icon className="w-4 h-4 text-[#0066cc]" />
                         <span className="text-[14px] sm:text-[15px] text-[#004d99] font-['Titillium_Web:SemiBold',sans-serif]">
                           {interest.name}
                         </span>
@@ -159,6 +160,24 @@ export default function SettingsModal({
                 <p className="text-[14px] sm:text-[16px] text-gray-500 font-['Titillium_Web:Italic',sans-serif]">
                   Nessun interesse selezionato
                 </p>
+              )}
+
+              {/* Category Labels - Filtered by userPreferences.interests */}
+              {categories?.result && categories.result.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {categories.result
+                    .filter((category) => userPreferences.interests.includes(category.name))
+                    .map((category) => (
+                      <div
+                        key={category.id}
+                        className="px-3 sm:px-4 py-2 bg-[#e6f2ff] border border-[#0066cc] rounded-full"
+                      >
+                        <span className="text-[14px] sm:text-[15px] text-[#004d99] font-['Titillium_Web:SemiBold',sans-serif]">
+                          {category.label}
+                        </span>
+                      </div>
+                    ))}
+                </div>
               )}
             </div>
 
