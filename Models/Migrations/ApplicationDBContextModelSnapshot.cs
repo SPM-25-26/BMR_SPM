@@ -211,7 +211,7 @@ namespace eppoi.Models.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("ArtCultureId")
+                    b.Property<string>("ArtNatureId")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
@@ -229,7 +229,7 @@ namespace eppoi.Models.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ArtCultureId");
+                    b.HasIndex("ArtNatureId");
 
                     b.ToTable("Catalogues", (string)null);
                 });
@@ -242,7 +242,7 @@ namespace eppoi.Models.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("ArtCultureId")
+                    b.Property<string>("ArtNatureId")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
@@ -256,7 +256,7 @@ namespace eppoi.Models.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ArtCultureId");
+                    b.HasIndex("ArtNatureId");
 
                     b.ToTable("CreativeWorks", (string)null);
                 });
@@ -267,6 +267,10 @@ namespace eppoi.Models.Migrations
                         .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("ImagePath")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -283,10 +287,6 @@ namespace eppoi.Models.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("TimeToRead")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -318,6 +318,10 @@ namespace eppoi.Models.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<int>("Position")
                         .HasColumnType("int");
 
@@ -326,10 +330,6 @@ namespace eppoi.Models.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Subtitle")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -416,17 +416,17 @@ namespace eppoi.Models.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Date")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<DateTime?>("Date")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("EndDate")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("datetime2");
 
-                    b.Property<string>("Image")
+                    b.Property<string>("ImagePath")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -436,17 +436,17 @@ namespace eppoi.Models.Migrations
                     b.Property<float>("Longitude")
                         .HasColumnType("real");
 
-                    b.Property<int>("OrganizerId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("StartDate")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Title")
+                    b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Typology")
+                    b.Property<int>("OrganizerId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("StartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Type")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -642,6 +642,10 @@ namespace eppoi.Models.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("ImagePath")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Instagram")
                         .HasColumnType("nvarchar(max)");
 
@@ -661,10 +665,6 @@ namespace eppoi.Models.Migrations
                     b.Property<string>("OwnerId")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("PrimaryImagePath")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Telephone")
                         .HasColumnType("nvarchar(max)");
@@ -698,6 +698,14 @@ namespace eppoi.Models.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Facebook")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("ImagePath")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -708,26 +716,6 @@ namespace eppoi.Models.Migrations
 
                     b.Property<int>("NumberOfStages")
                         .HasColumnType("int");
-
-                    b.Property<string>("OrganizationEmail")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("OrganizationFacebook")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("OrganizationTelephone")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("OrganizationWebsite")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PathTheme")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("QuantifiedPathwayPaving")
                         .HasColumnType("int");
@@ -747,7 +735,19 @@ namespace eppoi.Models.Migrations
                     b.Property<int>("StartingPointId")
                         .HasColumnType("int");
 
+                    b.Property<string>("Telephone")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("TravellingMethod")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Website")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -833,11 +833,8 @@ namespace eppoi.Models.Migrations
 
             modelBuilder.Entity("eppoi.Models.Entities.Import.Shopping", b =>
                 {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    b.Property<string>("Id")
+                        .HasColumnType("nvarchar(450)");
 
                     b.Property<string>("Address")
                         .IsRequired()
@@ -925,6 +922,10 @@ namespace eppoi.Models.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("ImagePath")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Instagram")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -943,19 +944,15 @@ namespace eppoi.Models.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<string>("Phone")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PrimaryImage")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.PrimitiveCollection<string>("Services")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Typology")
+                    b.Property<string>("Telephone")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Type")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
@@ -1108,24 +1105,24 @@ namespace eppoi.Models.Migrations
 
             modelBuilder.Entity("eppoi.Models.Entities.Import.ArtNatures.Catalogue", b =>
                 {
-                    b.HasOne("eppoi.Models.Entities.Import.ArtNatures.ArtNature", "ArtCulture")
+                    b.HasOne("eppoi.Models.Entities.Import.ArtNatures.ArtNature", "ArtNature")
                         .WithMany("Catalogues")
-                        .HasForeignKey("ArtCultureId")
+                        .HasForeignKey("ArtNatureId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("ArtCulture");
+                    b.Navigation("ArtNature");
                 });
 
             modelBuilder.Entity("eppoi.Models.Entities.Import.ArtNatures.CreativeWork", b =>
                 {
-                    b.HasOne("eppoi.Models.Entities.Import.ArtNatures.ArtNature", "ArtCulture")
+                    b.HasOne("eppoi.Models.Entities.Import.ArtNatures.ArtNature", "ArtNature")
                         .WithMany("CreativeWorks")
-                        .HasForeignKey("ArtCultureId")
+                        .HasForeignKey("ArtNatureId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("ArtCulture");
+                    b.Navigation("ArtNature");
                 });
 
             modelBuilder.Entity("eppoi.Models.Entities.Import.Articles.Paragraph", b =>

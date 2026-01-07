@@ -4,17 +4,17 @@ namespace eppoi.Models.Entities.Import.Routes
 {
     public class Route
     {
-        public string? Id { get; set; } = null!;
+        public string Id { get; set; } = string.Empty;
         public string ImagePath { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
-        public string PathTheme { get; set; } = string.Empty;
+        public string Type { get; set; } = string.Empty;
         public string TravellingMethod { get; set; } = string.Empty;
         public string ShortName { get; set; } = string.Empty;
-        public string OrganizationWebsite { get; set; } = string.Empty;
-        public string OrganizationEmail { get; set; } = string.Empty;
-        public string OrganizationFacebook { get; set; } = string.Empty;
-        public string OrganizationTelephone { get; set; } = string.Empty;
+        public string Website { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Facebook { get; set; } = string.Empty;
+        public string Telephone { get; set; } = string.Empty;
         public string SecurityLevel { get; set; } = string.Empty;
         public int NumberOfStages { get; set; } = 0;
         public int QuantifiedPathwayPaving { get; set; } = 0;
@@ -32,13 +32,13 @@ namespace eppoi.Models.Entities.Import.Routes
             ImagePath = import.imagePath;
             Name = import.name;
             Description = import.description;
-            PathTheme = import.pathTheme;
+            Type = import.pathTheme;
             TravellingMethod = import.travellingMethod;
             ShortName = import.shortName;
-            OrganizationWebsite = import.organizationWebsite ?? string.Empty;
-            OrganizationEmail = import.organizationEmail ?? string.Empty;
-            OrganizationFacebook = import.organizationFacebook ?? string.Empty;
-            OrganizationTelephone = import.organizationTelephone ?? string.Empty;
+            Website = import.organizationWebsite ?? string.Empty;
+            Email = import.organizationEmail ?? string.Empty;
+            Facebook = import.organizationFacebook ?? string.Empty;
+            Telephone = import.organizationTelephone ?? string.Empty;
             SecurityLevel = import.securityLevel;
             NumberOfStages = import.numberOfStages;
             QuantifiedPathwayPaving = import.quantifiedPathwayPaving;

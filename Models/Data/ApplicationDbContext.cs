@@ -26,13 +26,13 @@ namespace eppoi.Models.Data
             {
                 ac.ToTable("ArtNatures");
                 ac.HasMany(a => a.Catalogues)
-                    .WithOne(c => c.ArtCulture)
-                    .HasForeignKey(c => c.ArtCultureId)
+                    .WithOne(c => c.ArtNature)
+                    .HasForeignKey(c => c.ArtNatureId)
                     .OnDelete(DeleteBehavior.Cascade);
 
                 ac.HasMany(a => a.CreativeWorks)
-                    .WithOne(cw => cw.ArtCulture)
-                    .HasForeignKey(cw => cw.ArtCultureId)
+                    .WithOne(cw => cw.ArtNature)
+                    .HasForeignKey(cw => cw.ArtNatureId)
                     .OnDelete(DeleteBehavior.Cascade);
 
                 ac.HasOne(a => a.Site)

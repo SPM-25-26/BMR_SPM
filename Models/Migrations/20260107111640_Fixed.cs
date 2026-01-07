@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace eppoi.Models.Migrations
 {
     /// <inheritdoc />
-    public partial class Org : Migration
+    public partial class Fixed : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -16,7 +16,7 @@ namespace eppoi.Models.Migrations
                 columns: table => new
                 {
                     Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Title = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Script = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Subtitle = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     TimeToRead = table.Column<string>(type: "nvarchar(max)", nullable: false),
@@ -221,7 +221,7 @@ namespace eppoi.Models.Migrations
                 {
                     Id = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    Title = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Script = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Position = table.Column<int>(type: "int", nullable: false),
                     Subtitle = table.Column<string>(type: "nvarchar(max)", nullable: false),
@@ -249,14 +249,14 @@ namespace eppoi.Models.Migrations
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     WebsiteUrl = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ArtCultureId = table.Column<string>(type: "nvarchar(450)", nullable: false)
+                    ArtNatureId = table.Column<string>(type: "nvarchar(450)", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Catalogues", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_Catalogues_ArtNatures_ArtCultureId",
-                        column: x => x.ArtCultureId,
+                        name: "FK_Catalogues_ArtNatures_ArtNatureId",
+                        column: x => x.ArtNatureId,
                         principalTable: "ArtNatures",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -270,14 +270,14 @@ namespace eppoi.Models.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Type = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Url = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    ArtCultureId = table.Column<string>(type: "nvarchar(450)", nullable: false)
+                    ArtNatureId = table.Column<string>(type: "nvarchar(450)", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_CreativeWorks", x => x.Id);
                     table.ForeignKey(
-                        name: "FK_CreativeWorks_ArtNatures_ArtCultureId",
-                        column: x => x.ArtCultureId,
+                        name: "FK_CreativeWorks_ArtNatures_ArtNatureId",
+                        column: x => x.ArtNatureId,
                         principalTable: "ArtNatures",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -415,17 +415,17 @@ namespace eppoi.Models.Migrations
                 columns: table => new
                 {
                     Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Title = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Address = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Typology = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Image = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Type = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ImagePath = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Audience = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Latitude = table.Column<float>(type: "real", nullable: false),
                     Longitude = table.Column<float>(type: "real", nullable: false),
-                    Date = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    StartDate = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    EndDate = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Date = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    StartDate = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    EndDate = table.Column<DateTime>(type: "datetime2", nullable: true),
                     OrganizerId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
@@ -444,7 +444,7 @@ namespace eppoi.Models.Migrations
                 columns: table => new
                 {
                     Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    PrimaryImagePath = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ImagePath = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Address = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
@@ -482,8 +482,7 @@ namespace eppoi.Models.Migrations
                 name: "Shoppings",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Address = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
@@ -517,12 +516,12 @@ namespace eppoi.Models.Migrations
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Classification = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Typology = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    PrimaryImage = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Type = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ImagePath = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Gallery = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Services = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Address = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Phone = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Telephone = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Email = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Website = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Facebook = table.Column<string>(type: "nvarchar(max)", nullable: false),
@@ -550,13 +549,13 @@ namespace eppoi.Models.Migrations
                     ImagePath = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Description = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    PathTheme = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Type = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     TravellingMethod = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ShortName = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    OrganizationWebsite = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    OrganizationEmail = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    OrganizationFacebook = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    OrganizationTelephone = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Website = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Email = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Facebook = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Telephone = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     SecurityLevel = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     NumberOfStages = table.Column<int>(type: "int", nullable: false),
                     QuantifiedPathwayPaving = table.Column<int>(type: "int", nullable: false),
@@ -647,14 +646,14 @@ namespace eppoi.Models.Migrations
                 filter: "[NormalizedUserName] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Catalogues_ArtCultureId",
+                name: "IX_Catalogues_ArtNatureId",
                 table: "Catalogues",
-                column: "ArtCultureId");
+                column: "ArtNatureId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_CreativeWorks_ArtCultureId",
+                name: "IX_CreativeWorks_ArtNatureId",
                 table: "CreativeWorks",
-                column: "ArtCultureId");
+                column: "ArtNatureId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Events_OrganizerId",

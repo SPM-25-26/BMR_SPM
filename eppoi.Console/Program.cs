@@ -40,11 +40,6 @@ builder.ConfigureServices((context, services) =>
 
 var host = builder.Build();
 
-using (var scope = host.Services.CreateScope())
-{
-    var importer = scope.ServiceProvider.GetRequiredService<ImporterService>();
-    importer.Import();
-}
-
-Console.WriteLine("Operazione completata. Premi un tasto per uscire...");
-Console.ReadKey();
+using var scope = host.Services.CreateScope();
+var importer = scope.ServiceProvider.GetRequiredService<ImporterService>();
+importer.Import();

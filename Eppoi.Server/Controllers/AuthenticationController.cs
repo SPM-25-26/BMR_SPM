@@ -2,15 +2,7 @@
 using eppoi.Server.Models.Authentication.Dto;
 using eppoi.Server.Models.Factories;
 using eppoi.Server.Models.Responses;
-using eppoi.Server.Services;
-using Eppoi.Server.Services;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Google;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Net;
-using System.Net.Mail;
-using System.Net.WebSockets;
 
 namespace Eppoi.Server.Controllers
 {

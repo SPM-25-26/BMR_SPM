@@ -5,7 +5,7 @@ namespace eppoi.Models.Entities.Import.Restaurants
     public class Restaurant
     {
         public string Id { get; set; } = string.Empty;
-        public string PrimaryImagePath { get; set; } = string.Empty;
+        public string ImagePath { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string Address { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
@@ -29,7 +29,7 @@ namespace eppoi.Models.Entities.Import.Restaurants
         public Restaurant(RestaurantImport import)
         {
             Id = import.identifier.Trim();
-            PrimaryImagePath = import.primaryImagePath.Trim();
+            ImagePath = import.primaryImagePath.Trim();
             Name = import.officialName.Trim();
             Address = import.address.Trim();
             Description = import.description.Trim();

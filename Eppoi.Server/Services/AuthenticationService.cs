@@ -16,7 +16,6 @@ namespace eppoi.Server.Services
         private readonly SmtpService _smtpService = smtpService;
 
         private readonly string _googleUserInfoUrl = "https://www.googleapis.com/oauth2/v3/userinfo";
-        private readonly string _googleMapsInfoUrl = "https://roads.googleapis.com/v1/snapToRoads"; // ?lat,long&key=googlekey
 
         public async Task<IdentityResult> CreateUser(UserDto request)
         {

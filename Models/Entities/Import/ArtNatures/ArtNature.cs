@@ -37,14 +37,14 @@ namespace eppoi.Models.Entities.Import.ArtNatures
                 Name = c.name.Trim(),
                 WebsiteUrl = c.websiteUrl.Trim(),
                 Description = c.description.Trim(),
-                ArtCultureId = Id
+                ArtNatureId = Id
             })];
 
             CreativeWorks = [.. import.creativeWorks.Select(cw => new CreativeWork
             {
                 Type = cw.type.Trim(),
                 Url = cw.url.Trim(),
-                ArtCultureId = Id
+                ArtNatureId = Id
             })];
         }
     }

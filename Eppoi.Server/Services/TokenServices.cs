@@ -11,7 +11,7 @@ namespace Eppoi.Server.Services
 {
     public class TokenService(IOptions<TokenOption> option)
     {
-        private readonly Eppoi.Server.Options.TokenOption _jwtAuthenticationOption = option.Value;
+        private readonly TokenOption _jwtAuthenticationOption = option.Value;
 
         public string CreateToken(bool valid, User user)
         {

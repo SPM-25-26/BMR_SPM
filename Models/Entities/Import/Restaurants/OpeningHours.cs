@@ -11,7 +11,7 @@ namespace eppoi.Models.Entities.Import.Restaurants
         public string AdmissionType { get; set; } = string.Empty;
         public virtual IEnumerable<Restaurant> Restaurants { get; set; } = [];
 
-        public OpeningHours(Openinghours? op)
+        public OpeningHours(Openinghours op)
         {
             Opens = op.opens.Trim();
             Closes = op.closes.Trim();

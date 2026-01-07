@@ -3,7 +3,7 @@
     public class Paragraph
     {
         public int Id { get; set; } = 0;
-        public string Title { get; set; } = string.Empty;
+        public string Name { get; set; } = string.Empty;
         public string Script { get; set; } = string.Empty;
         public int Position { get; set; } = 0;
         public string Subtitle { get; set; } = string.Empty;

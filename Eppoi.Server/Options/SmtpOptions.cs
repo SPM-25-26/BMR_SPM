@@ -1,6 +1,4 @@
-﻿using System.Net.Mail;
-
-namespace eppoi.Server.Options
+﻿namespace eppoi.Server.Options
 {
     public class SmtpOptions
     {

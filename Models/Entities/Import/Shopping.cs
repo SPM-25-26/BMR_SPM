@@ -4,7 +4,7 @@ namespace eppoi.Models.Entities.Import
 {
     public class Shopping
     {
-        public int Id { get; set; }
+        public string Id { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
         public string Address { get; set; } = string.Empty;
         public string Description { get; set; } = string.Empty;
@@ -24,6 +24,7 @@ namespace eppoi.Models.Entities.Import
 
         public Shopping(ShoppingImport import)
         {
+            Id = import.identifier;
             Name = import.officialName;
             Address = import.address;
             Description = import.description;
