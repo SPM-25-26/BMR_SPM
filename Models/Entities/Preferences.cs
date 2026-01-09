@@ -1,18 +1,20 @@
-﻿namespace eppoi.Models.Entities
+﻿using System.Text.Json.Serialization;
+
+namespace eppoi.Models.Entities
 {
-    public class Preferences
+    [JsonConverter(typeof(JsonStringEnumConverter))]
+    [Flags]
+    public enum Preferences
     {
-        public string UserId { get; set; } = string.Empty;
-        public virtual User User { get; set; } = null!;
-        public int ArtCultures { get; set; } = 0;
-        public int Natures { get; set; } = 0;
-        public int Entertainments { get; set; } = 0;
-        public int Restaurants { get; set; } = 0;
-        public int Sleeps { get; set; } = 0;
-        public int Events { get; set; } = 0;
-        public int Routes { get; set; } = 0;
-        public int Articles { get; set; } = 0;
-        public int Shoppings {  get; set; } = 0;
-        public int Organizations { get; set; } = 0;
+        P_ArtCultures = 1 << 0,
+        P_Natures = 1 << 1,
+        P_Entertainments = 1 << 2,
+        P_Restaurants = 1 << 3,
+        P_Sleeps = 1 << 4,
+        P_Events = 1 << 5,
+        P_Routes = 1 << 6,
+        P_Articles = 1 << 7,
+        P_Shoppings = 1 << 8,
+        P_Organizations = 1 << 9,
     }
 }

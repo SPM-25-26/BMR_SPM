@@ -20,6 +20,7 @@ namespace eppoi.Server.Services
             };
 
             client.Send("test@test.it", request.Reciever, request.Title, request.Body);
+
             System.Console.WriteLine("Sent");
         }
     }

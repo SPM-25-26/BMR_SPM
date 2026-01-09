@@ -9,8 +9,9 @@ namespace eppoi.Models.Entities
         public required string Name { get; set; }
 
         public string? GoogleId { get; set; } = null;
+        public string? FacebookId { get; set; } = null;
 
-        public virtual Preferences Preferences { get; set; } = null!;
+        public Preferences Preferences { get; set; }
 
     }
 }

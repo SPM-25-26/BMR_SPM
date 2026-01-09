@@ -1,6 +1,6 @@
 namespace eppoi.Server.Models.Information.Enums
 {
-    public enum DiscoverType
+    public enum CategoryEnum
     {
         Poi,
         Event,

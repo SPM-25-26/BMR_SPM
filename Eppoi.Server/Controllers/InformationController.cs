@@ -1,4 +1,5 @@
 ﻿using eppoi.Server.Models.Factories;
+using eppoi.Server.Models.Information.Enums;
 using eppoi.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -10,7 +11,6 @@ namespace eppoi.Server.Controllers
     [ApiController]
     public class InformationController(ILogger<InformationController> _logger, InformationService _informationService) : ControllerBase
     {
-
         [HttpGet("GetCategories")]
         public ActionResult GetCategories()
         {
@@ -28,9 +28,9 @@ namespace eppoi.Server.Controllers
         }
 
         [HttpGet("GetDetails")]
-        public ActionResult GetPOIById([FromQuery] string id, [FromQuery] int category)
+        public ActionResult GetPOIById([FromQuery] string id, [FromQuery] CategoryEnum category)
         {
-            return category switch
+            return (int)category switch
             {
                 0 => Result(_informationService.GetPoiDetails(id)),
                 1 => Result(_informationService.GetEventDetails(id)),

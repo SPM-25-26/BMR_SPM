@@ -22,6 +22,7 @@ namespace Eppoi.Server.Controllers
                 return BadRequest(ResponseFactory.WithError(result));
             }
 
+            //Thread.Sleep(10 * 1000);
             var code = await _authenticationService.SendVerificationEmail(user.Email);
 
             _logger.LogInformation("User Created");
@@ -30,15 +31,24 @@ namespace Eppoi.Server.Controllers
                 Name = user.Name,
                 UserName = user.UserName,
                 Email = user.Email,
+                Preferences = user.Preferences.ToString(),
                 Message = code
             }));
         }
 
         [HttpPost("GoogleLogin")]
-        public async Task<ActionResult> GoogleLogin(GoogleInfoDto login)
+        public async Task<ActionResult> GoogleLogin(ProviderInfoDto login)
         {
-            var result = await _authenticationService.GoogleLogin(login);
-            if (String.IsNullOrEmpty(result)) return BadRequest(ResponseFactory.WithError("Google Login Failed."));
+            var result = await _authenticationService.ExternalLogin(login, "Google");
+            if (result.Contains("Error")) return BadRequest(ResponseFactory.WithError("Google Login Failed. " + result));
+            return Ok(ResponseFactory.WithSuccess(result));
+        }
+
+        [HttpPost("FacebookLogin")]
+        public async Task<ActionResult> FacebookLogin(ProviderInfoDto login)
+        {
+            var result = await _authenticationService.ExternalLogin(login, "Facebook");
+            if (result.Contains("Error")) return BadRequest(ResponseFactory.WithError("Facebook Login Failed. ") + result);
             return Ok(ResponseFactory.WithSuccess(result));
         }
 
