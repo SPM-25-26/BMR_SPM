@@ -174,14 +174,14 @@ namespace eppoi.Server.Services
                 {
                     case "Google":
                         user.GoogleId = request.Id;
-                        user.EmailConfirmed = true;
                         break;
 
                     case "Facebook":
                         user.FacebookId = request.Id;
-                        user.EmailConfirmed = true;
                         break;
                 }
+
+                user.EmailConfirmed = true;
                 await _userManager.UpdateAsync(user);
             }
 

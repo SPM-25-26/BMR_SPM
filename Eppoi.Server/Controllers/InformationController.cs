@@ -20,27 +20,28 @@ namespace eppoi.Server.Controllers
         }
 
         [HttpGet("GetBaseInformation")]
-        public ActionResult GetBaseInfo()
+        public ActionResult GetBaseInfo(int skip, int take)
         {
-            var discoverList = _informationService.GetBaseInfo();
+            var id = User.Claims.FirstOrDefault(x => x.Type == "id").Value;
+            var discoverList = _informationService.GetBaseInfo(skip, take);
             _logger.LogInformation("Base Information of All Categories Generated.");
             return Ok(ResponseFactory.WithSuccess(discoverList));
         }
 
         [HttpGet("GetDetails")]
-        public ActionResult GetPOIById([FromQuery] string id, [FromQuery] CategoryEnum category)
+        public ActionResult GetDetails([FromQuery] string id, [FromQuery] CategoryEnum category)
         {
-            return (int)category switch
+            return category switch
             {
-                0 => Result(_informationService.GetPoiDetails(id)),
-                1 => Result(_informationService.GetEventDetails(id)),
-                2 => Result(_informationService.GetArticleDetails(id)),
-                3 => Result(_informationService.GetOrganizationDetails(id)),
-                4 => Result(_informationService.GetRestaurantDetails(id)),
-                5 => Result(_informationService.GetSleepDetails(id)),
-                6 => Result(_informationService.GetShoppingDetails(id)),
-                7 => Result(_informationService.GetRouteDetails(id)),
-                8 => Result(_informationService.GetEntertainmentDetails(id)),
+                CategoryEnum.Poi => Result(_informationService.GetPoiDetails(id)),
+                CategoryEnum.Event => Result(_informationService.GetEventDetails(id)),
+                CategoryEnum.Article => Result(_informationService.GetArticleDetails(id)),
+                CategoryEnum.Organization => Result(_informationService.GetOrganizationDetails(id)),
+                CategoryEnum.Restaurant => Result(_informationService.GetRestaurantDetails(id)),
+                CategoryEnum.Sleep => Result(_informationService.GetSleepDetails(id)),
+                CategoryEnum.Shopping => Result(_informationService.GetShoppingDetails(id)),
+                CategoryEnum.Route => Result(_informationService.GetRouteDetails(id)),
+                CategoryEnum.Entertainment => Result(_informationService.GetEntertainmentDetails(id)),
                 _ => BadRequest(ResponseFactory.WithError("Category Not Found.")),
             };
         }

@@ -16,98 +16,101 @@ namespace eppoi.Server.Services
             }).ToListAsync();
         }
 
-        public async Task<IEnumerable<BaseInfoDto>> GetBaseInfo()
+        public async Task<IEnumerable<BaseInfoDto>> GetBaseInfo(int skip = 10, int take = 10)
         {
-            IEnumerable<BaseInfoDto> result  = await _context.ArtNatures.Select(x => new BaseInfoDto
-                    {
-                        Id = x.Id,
-                        Name = x.Name,
-                        ImagePath = x.ImagePath,
-                        BadgeText = x.Type,
-                        Address = x.Address,
-                        Category = x.Category
-                    }).ToListAsync();
-            
-            result = result.Concat(await _context.Events.Select(x => new BaseInfoDto
-                        {
-                            Id = x.Id,
-                            Name = x.Description,
-                            ImagePath = x.ImagePath,
-                            BadgeText = x.Type,
-                            Address = x.Address,
-                            Date = x.GetDateString(),
-                            Category = "Event"
-                        }).ToListAsync());
+            var result = _context.ArtNatures.Select(x => new BaseInfoDto
+            {
+                Id = x.Id,
+                Name = x.Name,
+                ImagePath = x.ImagePath,
+                BadgeText = x.Type,
+                Address = x.Address,
+                Category = x.Category
+            });
 
-            result = result.Concat(await _context.Articles.Select(x => new BaseInfoDto
-                    {
-                        Id = x.Id,
-                        Name = x.Name,
-                        ImagePath = x.ImagePath,
-                        BadgeText = x.TimeToRead,
-                        Category = "Article"
-                    }).ToListAsync());
+            result = result.Concat(_context.Events.Select(x => new BaseInfoDto
+            {
+                Id = x.Id,
+                Name = x.Description,
+                ImagePath = x.ImagePath,
+                BadgeText = x.Type,
+                Address = x.Address,
+                Date = x.GetDateString(),
+                Category = "Event"
+            }));
 
-            result = result.Concat(await _context.Entertainments.Select(x => new BaseInfoDto
-                {
-                    Id = x.Id,
-                    Name = x.Name,
-                    ImagePath = x.ImagePath,
-                    BadgeText = x.Category,
-                    Address = x.Address,
-                    Category = "Entertainment"
-                }).ToListAsync());
+            result = result.Concat(_context.Articles.Select(x => new BaseInfoDto
+            {
+                Id = x.Id,
+                Name = x.Name,
+                ImagePath = x.ImagePath,
+                BadgeText = x.TimeToRead,
+                Category = "Article"
+            }));
 
-            result = result.Concat(await _context.Organizations.Select(x => new BaseInfoDto
-                {
-                    Id = x.Id,
-                    Name = x.Name,
-                    ImagePath = x.ImagePath,
-                    BadgeText = x.Type,
-                    Address = x.Address,
-                    Category = "Organization"
-                }).ToListAsync());
+            result = result.Concat(_context.Entertainments.Select(x => new BaseInfoDto
+            {
+                Id = x.Id,
+                Name = x.Name,
+                ImagePath = x.ImagePath,
+                BadgeText = x.Category,
+                Address = x.Address,
+                Category = "Entertainment"
+            }));
 
-            result = result.Concat(await _context.Restaurants.Select(x => new BaseInfoDto
-                {
-                    Id = x.Id,
-                    Name = x.Name,
-                    ImagePath = x.ImagePath,
-                    BadgeText = x.Type,
-                    Address = x.Address,
-                    Category = "Restaurant"
-                }).ToListAsync());
+            result = result.Concat(_context.Organizations.Select(x => new BaseInfoDto
+            {
+                Id = x.Id,
+                Name = x.Name,
+                ImagePath = x.ImagePath,
+                BadgeText = x.Type,
+                Address = x.Address,
+                Category = "Organization"
+            }));
 
-            result = result.Concat(await _context.Routes.Select(x => new BaseInfoDto
-                {
-                    Id = x.Id!,
-                    Name = x.Name,
-                    ImagePath = x.ImagePath,
-                    BadgeText = x.Duration,
-                    Category = "Route"
-                }).ToListAsync());
+            result = result.Concat(_context.Restaurants.Select(x => new BaseInfoDto
+            {
+                Id = x.Id,
+                Name = x.Name,
+                ImagePath = x.ImagePath,
+                BadgeText = x.Type,
+                Address = x.Address,
+                Category = "Restaurant"
+            }));
 
-            result = result.Concat(await _context.Shoppings.Select(x => new BaseInfoDto
-                {
-                    Id = x.Id,
-                    Name = x.Name,
-                    ImagePath = x.ImagePath,
-                    BadgeText = x.Website,
-                    Address = x.Address,
-                    Category = "Shopping"
-                }).ToListAsync());
+            result = result.Concat(_context.Routes.Select(x => new BaseInfoDto
+            {
+                Id = x.Id!,
+                Name = x.Name,
+                ImagePath = x.ImagePath,
+                BadgeText = x.Duration,
+                Category = "Route"
+            }));
 
-            result = result.Concat(await _context.Sleeps.Select(x => new BaseInfoDto
-                {
-                    Id = x.Id,
-                    Name = x.Name,
-                    ImagePath = x.ImagePath,
-                    BadgeText = x.Type,
-                    Address = x.Address,
-                    Category = "Sleep"
-                }).ToListAsync());
+            result = result.Concat(_context.Shoppings.Select(x => new BaseInfoDto
+            {
+                Id = x.Id,
+                Name = x.Name,
+                ImagePath = x.ImagePath,
+                BadgeText = x.Website,
+                Address = x.Address,
+                Category = "Shopping"
+            }));
 
-            return result;
+            result = result.Concat(_context.Sleeps.Select(x => new BaseInfoDto
+            {
+                Id = x.Id,
+                Name = x.Name,
+                ImagePath = x.ImagePath,
+                BadgeText = x.Type,
+                Address = x.Address,
+                Category = "Sleep"
+            }));
+
+            return await result
+                .Skip(skip)
+                .Take(take)
+                .ToListAsync();
         }
 
         public async Task<PoiDto?> GetPoiDetails(string id)
