@@ -2,6 +2,7 @@
 using eppoi.Server.Models.Authentication;
 using eppoi.Server.Models.Authentication.Dto;
 using eppoi.Server.Models.Factories;
+using eppoi.Server.Models.Responses;
 using Eppoi.Server.Services;
 using Microsoft.AspNetCore.Identity;
 using Newtonsoft.Json;
@@ -43,7 +44,7 @@ namespace eppoi.Server.Services
             return result;
         }
 
-        public async Task<string> ValidateUser(Login request)
+        public async Task<LoggedUserResponse?> ValidateUser(Login request)
         {
             User? user;
 
@@ -52,15 +53,19 @@ namespace eppoi.Server.Services
             else
             { user = await _userManager.FindByNameAsync(request.UserOrEmail); }
 
-            if (user == null) return "";
+            if (user == null) return null;
 
             var isPasswordValid = await _userManager.CheckPasswordAsync(user, request.Password);
-            if (!isPasswordValid) return "ErrPw";
+            if (!isPasswordValid) return new LoggedUserResponse { };
 
-            if (!await _userManager.IsEmailConfirmedAsync(user)) return "Confirm";
+            if (!await _userManager.IsEmailConfirmedAsync(user)) return new LoggedUserResponse { Preferences = user.Preferences};
             
             var result = _tokenService.CreateToken(isPasswordValid, user);
-            return result;
+            return new LoggedUserResponse
+            {
+                Token = result,
+                Preferences = user.Preferences
+            };
         }
 
         public async Task<string> ConfirmEmail(string id, string token)
@@ -115,9 +120,9 @@ namespace eppoi.Server.Services
             return result;
         }
 
-        public async Task<string> ExternalLogin(ProviderInfoDto request, string provider)
+        public async Task<LoggedUserResponse?> ExternalLogin(ProviderInfoDto request, string provider)
         {
-            if (request == null) return "Request Error";
+            if (request == null) return null;
 
             var url = "";
             switch (provider)
@@ -132,7 +137,7 @@ namespace eppoi.Server.Services
             }
             var check = await CheckRequest(request, url);
 
-            if (!check) return "Token Validation Error";
+            if (!check) return null;
 
             var email = request.Email;
             var user = await _userManager.FindByEmailAsync(email);
@@ -165,7 +170,7 @@ namespace eppoi.Server.Services
                     Email e = EmailFactory.Registration(user);
                     _smtpService.SendMail(e);
                 }
-                else return "User Creation Error";
+                else return null;
             }
 
             else
@@ -185,8 +190,14 @@ namespace eppoi.Server.Services
                 await _userManager.UpdateAsync(user);
             }
 
-            var result = _tokenService.CreateToken(true, user);
-            return result;
+            var token = _tokenService.CreateToken(true, user);
+
+
+            return new LoggedUserResponse
+            {
+                Token = token,
+                Preferences = user.Preferences
+            };
         }
 
         
