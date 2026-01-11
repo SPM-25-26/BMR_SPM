@@ -23,7 +23,6 @@ namespace eppoi.Server.Services
         {
             Preferences pref = 0;
             pref = request.Preferences.Aggregate(pref, (current, pref) => current | pref);
-
             var user = new User
             {
                 UserName = request.UserName,

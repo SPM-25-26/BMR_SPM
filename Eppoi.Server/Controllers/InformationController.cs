@@ -22,7 +22,6 @@ namespace eppoi.Server.Controllers
         [HttpGet("GetBaseInformation")]
         public ActionResult GetBaseInfo(int skip, int take)
         {
-            var id = User.Claims.FirstOrDefault(x => x.Type == "id").Value;
             var discoverList = _informationService.GetBaseInfo(skip, take);
             _logger.LogInformation("Base Information of All Categories Generated.");
             return Ok(ResponseFactory.WithSuccess(discoverList));

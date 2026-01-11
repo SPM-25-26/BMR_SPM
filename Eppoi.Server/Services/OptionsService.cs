@@ -1,24 +1,24 @@
-﻿using eppoi.Models.Data;
-using eppoi.Models.Entities;
-using eppoi.Server.Models.Options.Dto;
+﻿using eppoi.Models.Entities;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Identity;
 
 namespace eppoi.Server.Services
 {
-    public class OptionsService(ApplicationDBContext _context)
+    public class OptionsService(UserManager<User> userService)
     {
-        public async Task<int> ChangePreferences(PreferencesDto changes)
+        private readonly UserManager<User> _userManager = userService;
+        public async Task<IdentityResult> ChangePreferences(IEnumerable<Preferences> changes, string userName)
         {
-            var user = await _context.Users.FindAsync(changes.Id);
+            var user = _userManager.FindByNameAsync(userName);
             
-            if (user == null)
-                return -1;
+            if (user.Result == null)
+                return IdentityResult.Failed();
 
             Preferences pref = 0;
-            pref = changes.Preferences.Aggregate(pref, (current, pref) => pref | current);
+            pref = changes.Aggregate(pref, (current, pref) => pref | current);
 
-            user.Preferences = pref;
-
-            return _context.SaveChanges();
+            user.Result.Preferences = pref;
+            return await _userManager.UpdateAsync(user.Result);
         }
     }
 }

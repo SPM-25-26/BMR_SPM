@@ -1,5 +1,5 @@
-﻿using eppoi.Server.Models.Factories;
-using eppoi.Server.Models.Options.Dto;
+﻿using eppoi.Models.Entities;
+using eppoi.Server.Models.Factories;
 using eppoi.Server.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,16 +12,18 @@ namespace eppoi.Server.Controllers
     public class OptionsController(ILogger<OptionsController> _logger, OptionsService _optionsService) : ControllerBase
     {
         [HttpPut("ChangePreferences")]
-        public async Task<ActionResult> ChangePreferences(PreferencesDto changes)
+        public async Task<ActionResult> ChangePreferences(IEnumerable<Preferences> changes)
         {
-            var r = await _optionsService.ChangePreferences(changes);
+            var user = User.Claims.FirstOrDefault(x => x.Type == "UserName")!.Value;
+            var r = await _optionsService.ChangePreferences(changes, user);
 
-            return (r) switch
+            if (!r.Succeeded)
             {
-                -1 => BadRequest(ResponseFactory.WithError("User Not Found.")),
-                0 => BadRequest(ResponseFactory.WithError("Update Failed.")),
-                _ => Ok(ResponseFactory.WithSuccess("Update Completed."))
-            };
+                _logger.LogInformation("User Not Found.");
+                return BadRequest(ResponseFactory.WithError("User Not Found."));
+            }
+            _logger.LogInformation("Preference Update Completed.");
+            return Ok(ResponseFactory.WithSuccess("Update Completed."));
         }
     }
 }
