@@ -23,7 +23,7 @@ interface OnboardingWizardProps {
     travelStyle: string;
     dietaryNeeds: string[];
   } | null;
-  onComplete: () => void;
+  onComplete: (preferences: { interests: string[]; travelStyle: string; dietaryNeeds: string[] }) => void;
   onLogout: () => void;
 }
 
@@ -56,12 +56,10 @@ export default function OnboardingWizard({
     resetLoadingFlag
   } = useApiDataLoader<Array<Category>>({
     onLogout,
-    onSuccess: async (categories) => {
-      cachedCategories.current = categories.result.filter(
+    onSuccess: async (categoriesResponse) => {
+      cachedCategories.current = categoriesResponse.filter(
         (category) => category.name in categoryToFlagMap
       );
-      console.error('Categories loaded for onboarding');
-      console.log(cachedCategories.current);
     }
   });
 

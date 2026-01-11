@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { X, User, Mail, Landmark, Newspaper, Hotel, Calendar, MapPin, Utensils, ShoppingBag, Sparkles, Users, UsersRound, WheatOff, Milk, Leaf, Edit } from 'lucide-react';
 import { type Category } from '../api/infoApi';
+import { CATEGORY_INTERESTS } from '../api/apiUtils';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -40,17 +41,6 @@ export default function SettingsModal({
   }, [isOpen]);
 
   if (!isOpen) return null;
-
-  const interestsMap: { [key: string]: { name: string; icon: any } } = {
-    'arte-cultura': { name: 'Arte e cultura', icon: Landmark },
-    'magazine': { name: 'Articoli e magazine', icon: Newspaper },
-    'dormire': { name: 'Dormire', icon: Hotel },
-    'eventi': { name: 'Eventi', icon: Calendar },
-    'itinerari': { name: 'Itinerari', icon: MapPin },
-    'mangiare': { name: 'Mangiare e bere', icon: Utensils },
-    'shopping': { name: 'Shopping', icon: ShoppingBag },
-    'svago': { name: 'Svago e divertimento', icon: Sparkles },
-  };
 
   const travelStylesMap: { [key: string]: { name: string; icon: any } } = {
     'solo': { name: 'Viaggiatore solitario', icon: User },
@@ -142,15 +132,22 @@ export default function SettingsModal({
               {userPreferences.interests.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {userPreferences.interests.map((interestId) => {
-                    const interest = interestsMap[interestId];
-                    if (!interest) return null;
+                    // Trova la categoria corrispondente usando l'ID
+                    const categoryInterest = CATEGORY_INTERESTS.find(cat => cat.id === interestId);
+                    if (!categoryInterest) return null;
+
+                    // Trova i dettagli della categoria dalle API (se disponibili)
+                    const categoryDetails = categories?.result?.find(cat => cat.name === interestId);
+                    const Icon = categoryInterest.icon;
+
                     return (
                       <div
                         key={interestId}
-                        className="px-3 sm:px-4 py-2 bg-[#e6f2ff] border border-[#0066cc] rounded-full"
+                        className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-[#e6f2ff] border border-[#0066cc] rounded-full"
                       >
+                        <Icon className="w-4 h-4 text-[#0066cc]" />
                         <span className="text-[14px] sm:text-[15px] text-[#004d99] font-['Titillium_Web:SemiBold',sans-serif]">
-                          {interest.name}
+                          {categoryDetails?.label || categoryInterest.name || interestId}
                         </span>
                       </div>
                     );
@@ -160,24 +157,6 @@ export default function SettingsModal({
                 <p className="text-[14px] sm:text-[16px] text-gray-500 font-['Titillium_Web:Italic',sans-serif]">
                   Nessun interesse selezionato
                 </p>
-              )}
-
-              {/* Category Labels - Filtered by userPreferences.interests */}
-              {categories?.result && categories.result.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-3">
-                  {categories.result
-                    .filter((category) => userPreferences.interests.includes(category.name))
-                    .map((category) => (
-                      <div
-                        key={category.id}
-                        className="px-3 sm:px-4 py-2 bg-[#e6f2ff] border border-[#0066cc] rounded-full"
-                      >
-                        <span className="text-[14px] sm:text-[15px] text-[#004d99] font-['Titillium_Web:SemiBold',sans-serif]">
-                          {category.label}
-                        </span>
-                      </div>
-                    ))}
-                </div>
               )}
             </div>
 
