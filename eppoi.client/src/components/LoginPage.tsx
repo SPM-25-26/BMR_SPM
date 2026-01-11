@@ -2,7 +2,7 @@ import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Mail, ArrowLeft } from 'lucide-react';
 import logoImage from 'figma:asset/958defa264c22f47e7a42e2e88ba5be34b61d176.png';
-import { type UserPreferences } from '../api/apiUtils';
+import { type UserPreferences, convertPreferencesFromStringListToStructure } from '../api/apiUtils';
 import { loginUser, ApiErrorWithResponse } from '../api/authApi';
 import PasswordInput from './ui/PasswordInput';
 import LoadingSpinner from './ui/LoadingSpinner';
@@ -62,14 +62,15 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
       try {
         const response = await loginUser(email, password);
 
-        if (response.success) {
-          const jwtPayload = decodeJwt(response.result);
+        if (response.success) {          
+          const jwtPayload = decodeJwt(response.result.token);
           
           if (jwtPayload) {
-            localStorage.setItem('authToken', response.result);
-            //TODO - change when login API ready with user preferences
-            const userPreferences = response.userPreferences ? response.userPreferences : null;
-
+            localStorage.setItem('authToken', response.result.token);
+            
+            const userPreferencesString = response.result.preferences;
+            const userPreferences = convertPreferencesFromStringListToStructure(userPreferencesString);
+            
             onLogin({
               name: jwtPayload.Name,
               userName: jwtPayload.UserName,

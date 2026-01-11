@@ -1,14 +1,9 @@
 import axios from 'axios';
-import { invokeApi, ApiErrorWithResponse, type ApiResponse, type UserPreferences } from './apiUtils';
+import { invokeApi, ApiErrorWithResponse, type ApiResponse, type UserPreferences, getClient } from './apiUtils';
 
 const API_BASE = '/api/Authentication';
 
-const apiClient = axios.create({
-  baseURL: API_BASE,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
+const apiClient = getClient(API_BASE, false);
 
 interface ConfirmEmailInput {
   id: string;
@@ -20,12 +15,15 @@ interface GoogleLoginInput {
   name: string;
   username: string;
   email: string;  
-  googleToken: string;  
+  token: string;  
 }
 
 export interface LoginResponse extends ApiResponse {
-  result: string;
-  userPreferences: UserPreferences;
+  success: boolean;
+  result: {
+    token: string;
+    preferences: string;
+  }; 
 }
 
 interface PasswordResetInput {
@@ -39,6 +37,7 @@ interface RegisterInput {
   userName: string;
   email: string;
   password: string;
+  preferences: [];
 }
 
 interface RegisterError {
@@ -74,7 +73,7 @@ export async function loginUser(email: string, password: string): Promise<LoginR
 }
 
 export async function loginGoogle(googleUid: string, name: string, userName: string, email: string, googleToken: string): Promise<LoginResponse> {  
-  const apiInput: GoogleLoginInput = { id: googleUid, name: name, username: userName, email: email, googleToken: googleToken };
+  const apiInput: GoogleLoginInput = { id: googleUid, name: name, username: userName, email: email, token: googleToken };
 
   return invokeApi(async () => {
     return await apiClient.post<LoginResponse>('/GoogleLogin', apiInput);
@@ -96,6 +95,8 @@ export async function resetPassword(userId: string, token: string, password: str
 }
 
 export async function registerUser(userData: RegisterInput): Promise<RegisterResponse> {
+  // Rut - 11/01/2026 - we still don't handle preferences in the first phase of registration
+  userData.preferences = [];
   return invokeApi(async () => {
     return await apiClient.post<RegisterResponse>('/SignUp', userData);
   }, 'Errore durante la registrazione');        

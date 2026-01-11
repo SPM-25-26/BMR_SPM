@@ -5,6 +5,7 @@ import { useGoogleLogin, type NonOAuthError } from '@react-oauth/google';
 import LoginSocialFacebook from '@greatsumini/react-facebook-login';
 import { Loader2 } from 'lucide-react';
 import logoImage from 'figma:asset/958defa264c22f47e7a42e2e88ba5be34b61d176.png';
+import { convertPreferencesFromStringListToStructure } from '../api/apiUtils';
 import { loginGoogle } from '../api/authApi';
 import ErrorModal from './ui/ErrorModal';
 import { decodeJwt } from './ui/utils';
@@ -106,19 +107,22 @@ export default function WelcomePage({ onLogin }: WelcomePageProps) {
 
         let googleLoginSuccess = false;
         if (apiResponse.success) {
-          const jwtPayload = decodeJwt(apiResponse.result);
+          const jwtPayload = decodeJwt(apiResponse.result.token);
 
           if (jwtPayload) {
-            localStorage.setItem('authToken', apiResponse.result);
+            localStorage.setItem('authToken', apiResponse.result.token);
+
+            const preferencesInFlag = apiResponse.result.preferences;
+            const preferencesStruct = convertPreferencesFromStringListToStructure(preferencesInFlag);
 
             googleLoginSuccess = true;
-            ;
+            
             onLogin({
               name: jwtPayload.Name,
               userName: jwtPayload.UserName,
               email: userInfo.email,
               emailConfirmed: true
-            }, apiResponse.userPreferences);
+            }, preferencesStruct);
 
             navigate('/');
           }

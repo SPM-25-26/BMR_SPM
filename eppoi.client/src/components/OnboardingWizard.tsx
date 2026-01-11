@@ -2,28 +2,12 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import {
   ArrowRight,
   ArrowLeft,
-  Check,
-  Landmark,
-  Newspaper,
-  Hotel,
-  Calendar,
-  MapPin,
-  Utensils,
-  ShoppingBag,
-  Sparkles,
-  User,
-  Users,
-  UsersRound,
-  WheatOff,
-  Milk,
-  Leaf,
-  Trees,
-  BriefcaseBusiness,
-  Ham,
-  Info
+  Check  
 } from "lucide-react";
 import logoImage from "figma:asset/958defa264c22f47e7a42e2e88ba5be34b61d176.png";
-import { getCategories, updateUserPreferences, type Category } from '../api/infoApi';
+import { CATEGORY_INTERESTS, categoryToFlagMap, travelStyles, dietaryOptions } from '../api/apiUtils';
+import { getCategories, type Category } from '../api/infoApi';
+import { updateUserPreferences } from '../api/optionsApi';
 import LoadingSpinner from './ui/LoadingSpinner';
 import ErrorModal from './ui/ErrorModal';
 import { useApiDataLoader } from '../hooks/useApiDataLoader';
@@ -73,7 +57,9 @@ export default function OnboardingWizard({
   } = useApiDataLoader<Array<Category>>({
     onLogout,
     onSuccess: async (categories) => {
-      cachedCategories.current = categories.result;
+      cachedCategories.current = categories.result.filter(
+        (category) => category.name in categoryToFlagMap
+      );
       console.error('Categories loaded for onboarding');
       console.log(cachedCategories.current);
     }
@@ -96,44 +82,6 @@ export default function OnboardingWizard({
     }
   });
 
-  /** This is to map categories with icons, because unfortunately icons by Eppoi webservices still don't work */
-  const interests = [
-    {
-      id: "ArtCulture",
-      icon: Landmark,
-    },
-    {
-      id: "Articles",
-      icon: Newspaper,
-    },
-    { id: "Sleep", icon: Hotel },
-    { id: "Events", name: "Eventi", icon: Calendar },
-    { id: "Routes", icon: MapPin },
-    { id: "EatAndDrink", icon: Utensils },
-    { id: "Nature", icon: Trees },
-    { id: "Organizations", icon: BriefcaseBusiness },
-    { id: "TypicalProducts", icon: Ham },
-    { id: "Shopping", icon: ShoppingBag },
-    { id: "Services", icon: Info },
-    {
-      id: "EntertainmentLeisure",
-      icon: Sparkles,
-    },
-  ];
-
-  const travelStyles = [
-    { id: "solo", name: "Viaggiatore solitario", icon: User },
-    { id: "coppia", name: "Coppia", icon: Users },
-    { id: "famiglia", name: "Famiglia", icon: UsersRound },
-    { id: "amici", name: "Gruppo di amici", icon: Users },
-  ];
-
-  const dietaryOptions = [
-    { id: "celiachia", name: "Celiachia", icon: WheatOff },
-    { id: "lattosio", name: "Senza lattosio", icon: Milk },
-    { id: "vegetariano", name: "Vegetariano", icon: Leaf },
-  ];
-
   const toggleInterest = (interestId: string) => {
     setSelectedInterests((prev) =>
       prev.includes(interestId)
@@ -154,24 +102,16 @@ export default function OnboardingWizard({
     );
   };
 
-  const convertTravelStyleToEnum = (style: string): number => {
-    const mapping: { [key: string]: number } = {
-      'solo': 0,
-      'coppia': 1,
-      'famiglia': 2,
-      'amici': 3
-    };
-    return mapping[style] ?? 0;
-  };
-
   const saveUserPreferences = async () => {
+    const currentPreferencesSelection = {
+      interests: selectedInterests,
+      travelStyle: travelStyle,
+      dietaryNeeds: dietaryNeeds
+    };
+
     setIsSavingPreferences(true);
     try {
-      await saveData(() => updateUserPreferences(user.userName, {
-        interests: selectedInterests,
-        travelStyle: convertTravelStyleToEnum(travelStyle),
-        dietaryNeeds: dietaryNeeds
-      }));
+      await saveData(() => updateUserPreferences(currentPreferencesSelection));
     } finally {
       setIsSavingPreferences(false);
     }
@@ -315,8 +255,8 @@ export default function OnboardingWizard({
 
               <div className="grid grid-cols-2 gap-3 sm:gap-4">
                 {cachedCategories.current?.map((category) => {
-                  // Find matching interes for icon
-                  const matchingInterest = interests.find(
+                  // Find matching interest for icon
+                  const matchingInterest = CATEGORY_INTERESTS.find(
                     (interest) => interest.id === category.name
                   );
                   const Icon = matchingInterest?.icon;
