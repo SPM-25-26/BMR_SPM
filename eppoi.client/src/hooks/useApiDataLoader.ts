@@ -39,12 +39,12 @@ export function useApiDataLoader<T>({ onLogout, onSuccess, customErrorMessages }
 
       setErrorState({
         title: customErrorMessages?.title || 'Errore Server',
-        message: customErrorMessages?.message || error.message || 'Si è verificato un errore durante il caricamento dei dati. Riprova tra qualche minuto.'
+        message: customErrorMessages?.message || error.message || 'Si Ã¨ verificato un errore durante il caricamento dei dati. Riprova tra qualche minuto.'
       });
     } else {
       setErrorState({
         title: customErrorMessages?.title || 'Errore Sconosciuto',
-        message: customErrorMessages?.message || 'Si è verificato un errore imprevisto.'
+        message: customErrorMessages?.message || 'Si Ã¨ verificato un errore imprevisto.'
       });
     }
     setShowErrorModal(true);
@@ -55,6 +55,7 @@ export function useApiDataLoader<T>({ onLogout, onSuccess, customErrorMessages }
     options?: {
       errorTitle?: string;
       errorMessage?: string;
+      localStorageKey?: string;
     }
   ): Promise<R | null> => {
     // Avoid duplicate calls during re-renders
@@ -62,13 +63,57 @@ export function useApiDataLoader<T>({ onLogout, onSuccess, customErrorMessages }
       return null;
     }
 
+    const loadFromStorageIfCached = async () => {
+      // Refresh data management - load data from localStorage only if not older than an hour
+      if (options?.localStorageKey) {
+        const cachedData = localStorage.getItem(options.localStorageKey);
+        const expiryKey = options.localStorageKey + 'Exp';
+        const expiryTime = localStorage.getItem(expiryKey);
+        
+        let loadedObject = null;
+        if (cachedData) {
+          try {
+            const parsedData = JSON.parse(cachedData);
+            
+            // Verifica se l'expiry time esiste e non Ã¨ scaduto
+            if (expiryTime) {
+              const expiryTimestamp = parseInt(expiryTime, 10);
+              const currentTime = new Date().getTime();
+              
+              if (currentTime < expiryTimestamp) {
+                loadedObject = parsedData;
+              }
+            }
+          } catch (err) {
+            console.error('Could not parse cached data');
+            console.log(err);
+            console.log(cachedData);
+          }
+        }        
+
+        if (loadedObject) {
+          return loadedObject;
+        }
+      }
+
+      const response = await apiCall();
+
+      if ((response as any).success && (response as any).result && options?.localStorageKey) {
+        localStorage.setItem(options.localStorageKey, JSON.stringify(response));
+        const expiryKey = options.localStorageKey + 'Exp';
+        const expiryTime = (new Date()).getTime() + (60 * 60*1000); // 1 hour - time is in milliseconds
+        localStorage.setItem(expiryKey, JSON.stringify(expiryTime));
+      }
+      return response;
+    };
+
     setIsLoading(true);
     dataLoadingRef.current = true;
     let success = false;
     let result: R | null = null;
 
     try {
-      const response = await apiCall();
+      const response = await loadFromStorageIfCached();
 
       if ((response as any).success && (response as any).result) {
         result = (response as any).result;
@@ -76,7 +121,7 @@ export function useApiDataLoader<T>({ onLogout, onSuccess, customErrorMessages }
       } else {
         setErrorState({
           title: options?.errorTitle || customErrorMessages?.title || 'Errore nel caricamento',
-          message: options?.errorMessage || customErrorMessages?.message || 'Non è stato possibile caricare i dati del comune. Riprova.'
+          message: options?.errorMessage || customErrorMessages?.message || 'Non Ã¨ stato possibile caricare i dati del comune. Riprova.'
         });
         setShowErrorModal(true);
       }

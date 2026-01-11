@@ -51,6 +51,9 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
   const [showWorkInProgressModal, setShowWorkInProgressModal] = useState(false);
   const [showLoadDiscoveryTypeErrorModal, setShowLoadDiscoveryTypeErrorModal] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [gpsError, setGpsError] = useState<{ title: string; message: string } | null>(null);
+  const [showGpsErrorModal, setShowGpsErrorModal] = useState(false);
 
   const cachedCategories = useRef<Array<Category> | null>(null);
   const cachedPois = useRef<Array<DiscoverItem> | null>(null);
@@ -129,7 +132,62 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
     await loadSelectedDiscoveryType(getSelectedDiscoverType());
   }, [loadSelectedDiscoveryType, getSelectedDiscoverType]);
 
+  const closeGpsErrorModal = useCallback(() => {
+    setShowGpsErrorModal(false);
+    setGpsError(null);
+  }, []);
+
   const loadMunicipalityData = useCallback(async () => {
+    // GPS position of user (if he allows it)
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          console.log('Posizione GPS ottenuta:', { latitude, longitude });
+          setUserLocation({ latitude, longitude });          
+        },
+        (error) => {
+          console.error('Errore nel recupero della posizione GPS:', error.message);
+          
+          let errorTitle = 'Errore GPS';
+          let errorMessage = '';
+          
+          switch (error.code) {
+            case error.PERMISSION_DENIED:
+              errorTitle = 'Permesso GPS negato';
+              errorMessage = 'Per utilizzare questa funzionalità, è necessario attivare i permessi di localizzazione nelle impostazioni del browser.';
+              break;
+            case error.POSITION_UNAVAILABLE:
+              errorTitle = 'GPS non disponibile';
+              errorMessage = 'La posizione GPS non è disponibile. Controlla le impostazioni del tuo dispositivo e assicurati che il GPS sia attivo.';
+              break;
+            case error.TIMEOUT:
+              errorTitle = 'Timeout GPS';
+              errorMessage = 'Il recupero della posizione GPS ha impiegato troppo tempo. Controlla le impostazioni del tuo dispositivo e riprova.';
+              break;
+            default:
+              errorTitle = 'Errore GPS';
+              errorMessage = 'Si è verificato un errore durante il recupero della posizione GPS.';
+          }
+
+          setGpsError({ title: errorTitle, message: errorMessage });
+          setShowGpsErrorModal(true);
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
+      );
+    } else {
+      console.error('Geolocation non è supportata da questo browser');
+      setGpsError({ 
+        title: 'GPS non supportato', 
+        message: 'Il tuo browser non supporta la geolocalizzazione. Prova ad utilizzare un browser più recente.' 
+      });
+      setShowGpsErrorModal(true);
+    }
+
     const categoriesOutput = await loadData(getCategories, { localStorageKey: STORAGE_CATEGORIES_KEY });
     cachedCategories.current = categoriesOutput?.result;
 
@@ -473,6 +531,17 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
           categories={cachedCategories.current}
           onEditPreferences={onEditPreferences}
           onClose={() => setIsSettingsOpen(false)}
+        />
+      )}
+
+      {/* GPS Error Modal */}
+      {gpsError && (
+        <ErrorModal
+          isOpen={showGpsErrorModal}
+          title={gpsError.title}
+          message={gpsError.message}
+          onClose={closeGpsErrorModal}
+          cancelLabel="Chiudi"
         />
       )}
 
