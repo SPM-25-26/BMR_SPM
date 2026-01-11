@@ -249,21 +249,186 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
     }
   }, [chatInput]);
 
+  // Interests -> POIs category mapping (unfortunately it doesn't match with cached categories)
+  const interestToCategoryMap: Record<string, string> = {
+    'ArtCulture': 'ArtCulture',
+    'Articles': 'Article',
+    'Sleep': 'Sleep',
+    'Events': 'Event',
+    'Routes': 'Route',
+    'EatAndDrink': 'Restaurant',
+    'Nature': 'Nature',
+    'Organizations': 'Organization',
+    'Shopping': 'Shopping',
+    'EntertainmentLeisure': 'Entertainment'
+  };
+
+  // dietaryNeeds -> POI value mapping
+  const dietaryNeedsMap: Record<string, string> = {
+    'celiachia': 'Adatto ai celiaci',
+    'lattosio': 'Alternative senza lattosio',
+    'vegetariano': 'Adatto ai vegetariani'
+  };
+
+  // Harversine formula for km distance between two coordinates
+  const calculateDistance = useCallback((lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371; // Raggio della Terra in km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }, []);
+
+  // Parse event date string (format: 'DD/MM/YYYY' or 'DD/MM/YYYY - DD/MM/YYYY')
+  // Returns the start date, converting 2025 to 2026
+  const parseEventDate = useCallback((dateString: string): Date | null => {
+    if (!dateString) return null;
+    
+    // If it's a range, take only the first date
+    const startDateStr = dateString.includes(' - ') 
+      ? dateString.split(' - ')[0].trim() 
+      : dateString.trim();
+    
+    // Parse DD/MM/YYYY format
+    const parts = startDateStr.split('/');
+    if (parts.length !== 3) return null;
+    
+    const day = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed in JS
+    let year = parseInt(parts[2], 10);
+    
+    // Convert 2025 to 2026 as requested
+    if (year === 2025) {
+      year = 2026;
+    }
+    
+    if (isNaN(day) || isNaN(month) || isNaN(year)) return null;
+    
+    return new Date(year, month, day);
+  }, []);
+
+  // Calculate event date score (0-500): closer events get higher score
+  // TODO: handle range events
+  const calculateEventDateScore = useCallback((dateString: string): number => {
+    const eventDate = parseEventDate(dateString);
+    if (!eventDate) return 0;
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Normalize to start of day
+    
+    const diffMs = eventDate.getTime() - today.getTime();
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+    
+    // If event is in the past, score is 0
+    if (diffDays < 0) return 0;
+    
+    // If event is today, score is 500
+    // If event is 365 days away or more, score is 0
+    // Linear interpolation in between
+    const maxDaysForBonus = 365;
+    if (diffDays >= maxDaysForBonus) return 0;
+
+    // Max points 500 if event is today
+    const score = Math.round(500 * (1 - diffDays / maxDaysForBonus));
+    return score;
+  }, [parseEventDate]);
+
   const getFilteredContent = useCallback(() => {
     if (!discoveryData || !Array.isArray(discoveryData)) return [];
 
-    const output = discoveryData.map(item => ({
-      ...item,
-      id: item.id,
-      title: item.name,
-      category: item.badgeText,
-      location: item.address || 'Cupra Marittima',
-      image: getMediaUrl(item.imagePath),
-      date: item.date
-    }));
+    // Score based on priorities
+    const SCORE_FAMILY_EVENT = 10000;      // Max priority: events for families
+    const SCORE_DIETARY_NEEDS = 5000;      // Second priority: dietary needs
+    const SCORE_INTEREST_MATCH = 1000;     // Third priority: interests match
+    const SCORE_DISTANCE_MAX = 500;        // Bonus for proximity (non-events)
+    
+    const scoredItems = discoveryData.map(item => {
+      let score = 0;
+      const isEvent = item.category === 'Event';
 
-    return output;
-  }, [discoveryData]);
+      // 1. TRAVEL STYLE "famiglia" - Events for families with kids
+      if (userPreferences.travelStyle === 'famiglia') {
+        if (isEvent && item.audience === 'Adulti e bambini') {
+          score += SCORE_FAMILY_EVENT;
+        }
+      }
+
+      // 2. DIETARY NEEDS - Restaurants with dietary needs alternatives
+      if (userPreferences.dietaryNeeds && userPreferences.dietaryNeeds.length > 0) {
+        if (item.category === 'Restaurant' && item.dietaryNeeds && item.dietaryNeeds.length > 0) {
+          for (const userDiet of userPreferences.dietaryNeeds) {
+            const mappedDiet = dietaryNeedsMap[userDiet.toLowerCase()];
+            if (mappedDiet && item.dietaryNeeds.includes(mappedDiet)) {
+              score += SCORE_DIETARY_NEEDS;
+              break; // Do not sum if has multiple alternatives, one is enough
+            }
+          }
+        }
+      }
+
+      // 3. INTERESTS - Categories corresponding to user interests
+      if (userPreferences.interests && userPreferences.interests.length > 0) {
+        for (const interest of userPreferences.interests) {
+          const mappedCategory = interestToCategoryMap[interest];
+          if (mappedCategory && item.category === mappedCategory) {
+            score += SCORE_INTEREST_MATCH;
+            break;
+          }
+        }
+      }
+
+      // 4. DISTANCE or EVENT DATE bonus
+      if (isEvent) {
+        // For events: score based on event date proximity (not distance)
+        if (item.date) {
+          const eventDateScore = calculateEventDateScore(item.date);
+          score += eventDateScore;
+        }
+      } else {
+        // For non-events: score based on geographic distance (only if userLocation available)
+        if (userLocation && item.latitude != null && item.longitude != null && item.latitude !== 0 && item.longitude !== 0) {
+          const distance = calculateDistance(
+            userLocation.latitude,
+            userLocation.longitude,
+            item.latitude,
+            item.longitude
+          );
+
+          // Bonus greater if item is nearer
+          // 0 km distance = maximum bonus (500), distance >= 50 km = bonus 0
+          const maxDistanceForBonus = 50; // km
+          if (distance < maxDistanceForBonus) {
+            const distanceBonus = Math.round(SCORE_DISTANCE_MAX * (1 - distance / maxDistanceForBonus));
+            score += distanceBonus;
+          }
+        }
+      }
+
+      return {
+        ...item,
+        id: item.id,
+        title: item.name,
+        category: item.badgeText,
+        location: item.address || 'Cupra Marittima',
+        image: getMediaUrl(item.imagePath),
+        date: item.date,
+        score
+      };
+    });
+
+    // First 20 most appropriate results
+    const sortedItems = scoredItems.sort((a, b) => b.score - a.score);
+
+    const top20 = sortedItems.slice(0, 20);
+
+    console.log('>>>sorted items'); console.log(sortedItems);
+
+    return top20;
+  }, [discoveryData, userLocation, userPreferences, calculateDistance, calculateEventDateScore]);
 
   const filteredContent = useMemo(() => getFilteredContent(), [getFilteredContent]);
 
@@ -320,7 +485,7 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
           <div className="mb-5 sm:mb-6 md:mb-8">
             <h2 className="text-[#004d99] text-[22px] sm:text-[24px] md:text-[32px] font-['Titillium_Web:Bold',sans-serif] mb-1 sm:mb-2">
               Ciao {user.name}!
-            </h2>            		
+            </h2>            
 
             {/* Location Notice */}
             <div className="bg-white rounded-lg shadow-md p-3 sm:p-4 md:p-5 flex items-center gap-3 sm:gap-4">
