@@ -12,25 +12,25 @@ namespace eppoi.Server.Controllers
     public class InformationController(ILogger<InformationController> _logger, InformationService _informationService) : ControllerBase
     {
         [HttpGet("GetCategories")]
-        public ActionResult GetCategories()
+        public async Task<ActionResult> GetCategories()
         {
-            var discoverList = _informationService.GetCategories();
+            var discoverList = await _informationService.GetCategories();
             _logger.LogInformation("Categories Generated.");
             return Ok(ResponseFactory.WithSuccess(discoverList));
         }
 
         [HttpGet("GetBaseInformation")]
-        public ActionResult GetBaseInfo(int skip, int take)
+        public async Task<ActionResult> GetBaseInfo(int skip, int take)
         {
-            var discoverList = _informationService.GetBaseInfo(skip, take);
+            var discoverList = await _informationService.GetBaseInfo(skip, take);
             _logger.LogInformation("Base Information of All Categories Generated.");
             return Ok(ResponseFactory.WithSuccess(discoverList));
         }
 
         [HttpGet("GetDetails")]
-        public ActionResult GetDetails([FromQuery] string id, [FromQuery] CategoryEnum category)
+        public async Task<ActionResult> GetDetails([FromQuery] string id, [FromQuery] CategoryEnum category)
         {
-            return category switch
+            return await (category switch
             {
                 CategoryEnum.Poi => Result(_informationService.GetPoiDetails(id)),
                 CategoryEnum.Event => Result(_informationService.GetEventDetails(id)),
@@ -41,11 +41,11 @@ namespace eppoi.Server.Controllers
                 CategoryEnum.Shopping => Result(_informationService.GetShoppingDetails(id)),
                 CategoryEnum.Route => Result(_informationService.GetRouteDetails(id)),
                 CategoryEnum.Entertainment => Result(_informationService.GetEntertainmentDetails(id)),
-                _ => BadRequest(ResponseFactory.WithError("Category Not Found.")),
-            };
+                _ => Task.Run<ActionResult>(() => BadRequest(ResponseFactory.WithError("Category Not Found."))),
+            });
         }
 
-        private ActionResult Result<T>(Task<T> item)
+        private async Task<ActionResult> Result<T>(Task<T> item)
         {
             if (item == null)
             {
@@ -54,7 +54,7 @@ namespace eppoi.Server.Controllers
             }
 
             _logger.LogInformation("Item Found");
-            return Ok(ResponseFactory.WithSuccess(item));
+            return Ok(ResponseFactory.WithSuccess(await item));
         }
     }
 }

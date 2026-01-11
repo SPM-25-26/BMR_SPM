@@ -16,19 +16,21 @@ namespace eppoi.Server.Services
             }).ToListAsync();
         }
 
-        public async Task<IEnumerable<BaseInfoDto>> GetBaseInfo(int skip = 10, int take = 10)
+        public async Task<IEnumerable<BaseInfoDto>> GetBaseInfo(int skip, int take)
         {
-            var result = _context.ArtNatures.Select(x => new BaseInfoDto
+            var result = await _context.ArtNatures.Select(x => new BaseInfoDto
             {
                 Id = x.Id,
                 Name = x.Name,
                 ImagePath = x.ImagePath,
                 BadgeText = x.Type,
                 Address = x.Address,
-                Category = x.Category
-            });
+                Category = x.Category,
+                Latitude = x.Latitude,
+                Longitude = x.Longitude,
+            }).ToListAsync();
 
-            result = result.Concat(_context.Events.Select(x => new BaseInfoDto
+            result.AddRange(await _context.Events.Select(x => new BaseInfoDto
             {
                 Id = x.Id,
                 Name = x.Description,
@@ -36,81 +38,96 @@ namespace eppoi.Server.Services
                 BadgeText = x.Type,
                 Address = x.Address,
                 Date = x.GetDateString(),
-                Category = "Event"
-            }));
+                Category = "Event",
+                Latitude = x.Latitude,
+                Longitude = x.Longitude,
+                Audience = x.Audience
+            }).ToListAsync());
 
-            result = result.Concat(_context.Articles.Select(x => new BaseInfoDto
+            result.AddRange(await _context.Articles.Select(x => new BaseInfoDto
             {
                 Id = x.Id,
                 Name = x.Name,
                 ImagePath = x.ImagePath,
                 BadgeText = x.TimeToRead,
                 Category = "Article"
-            }));
+            }).ToListAsync());
 
-            result = result.Concat(_context.Entertainments.Select(x => new BaseInfoDto
+            result.AddRange(await _context.Entertainments.Select(x => new BaseInfoDto
             {
                 Id = x.Id,
                 Name = x.Name,
                 ImagePath = x.ImagePath,
                 BadgeText = x.Category,
                 Address = x.Address,
+                Latitude = x.Latitude,
+                Longitude = x.Longitude,
                 Category = "Entertainment"
-            }));
+            }).ToListAsync());
 
-            result = result.Concat(_context.Organizations.Select(x => new BaseInfoDto
+            result.AddRange(await _context.Organizations.Select(x => new BaseInfoDto
             {
                 Id = x.Id,
                 Name = x.Name,
                 ImagePath = x.ImagePath,
                 BadgeText = x.Type,
                 Address = x.Address,
+                Latitude = x.Latitude,
+                Longitude = x.Longitude,
                 Category = "Organization"
-            }));
+            }).ToListAsync());
 
-            result = result.Concat(_context.Restaurants.Select(x => new BaseInfoDto
+            result.AddRange(await _context.Restaurants.Select(x => new BaseInfoDto
             {
                 Id = x.Id,
                 Name = x.Name,
                 ImagePath = x.ImagePath,
                 BadgeText = x.Type,
                 Address = x.Address,
+                Latitude = x.Latitude,
+                Longitude = x.Longitude,
+                DietaryNeeds = x.DietaryNeeds,
                 Category = "Restaurant"
-            }));
+            }).ToListAsync());
 
-            result = result.Concat(_context.Routes.Select(x => new BaseInfoDto
+            result.AddRange(await _context.Routes.Select(x => new BaseInfoDto
             {
                 Id = x.Id!,
                 Name = x.Name,
                 ImagePath = x.ImagePath,
                 BadgeText = x.Duration,
+                Latitude = x.StartingPoint.Latitude,
+                Longitude = x.StartingPoint.Longitude,
                 Category = "Route"
-            }));
+            }).ToListAsync());
 
-            result = result.Concat(_context.Shoppings.Select(x => new BaseInfoDto
+            result.AddRange(await _context.Shoppings.Select(x => new BaseInfoDto
             {
                 Id = x.Id,
                 Name = x.Name,
                 ImagePath = x.ImagePath,
                 BadgeText = x.Website,
                 Address = x.Address,
+                Latitude = x.Latitude,
+                Longitude = x.Longitude,
                 Category = "Shopping"
-            }));
+            }).ToListAsync());
 
-            result = result.Concat(_context.Sleeps.Select(x => new BaseInfoDto
+            result.AddRange(await _context.Sleeps.Select(x => new BaseInfoDto
             {
                 Id = x.Id,
                 Name = x.Name,
                 ImagePath = x.ImagePath,
                 BadgeText = x.Type,
                 Address = x.Address,
+                Latitude = x.Latitude,
+                Longitude = x.Longitude,
                 Category = "Sleep"
-            }));
+            }).ToListAsync());
 
-            return await result
+            return result
                 .Skip(skip)
-                .Take(take)
-                .ToListAsync();
+                .Take(take);
         }
 
         public async Task<PoiDto?> GetPoiDetails(string id)

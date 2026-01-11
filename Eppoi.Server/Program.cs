@@ -112,6 +112,7 @@ builder.Services.Configure<TokenOption>(builder.Configuration.GetSection("Authen
 builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection("Authentication:SmtpSandbox"));
 builder.Services.AddScoped<SmtpService>();
 builder.Services.AddScoped<TokenService>();
+builder.Services.AddScoped<OptionsService>();
 builder.Services.AddScoped<AuthenticationService>();
 builder.Services.AddScoped<InformationService>();
 
