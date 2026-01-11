@@ -1,7 +1,4 @@
-﻿using eppoi.Models.Entities;
-using eppoi.Server.Models.Options;
-
-namespace eppoi.Server.Models.Responses
+﻿namespace eppoi.Server.Models.Responses
 {
     public class CreateUserResponse
     {

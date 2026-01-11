@@ -48,7 +48,7 @@ namespace Eppoi.Server.Controllers
         public async Task<ActionResult> FacebookLogin(ProviderInfoDto login)
         {
             var result = await _authenticationService.ExternalLogin(login, "Facebook");
-            if (result == null) return BadRequest(ResponseFactory.WithError("Facebook Login Failed. "));
+            if (result == null) return BadRequest(ResponseFactory.WithError("Facebook Login Failed."));
             return Ok(ResponseFactory.WithSuccess(result));
         }
 
@@ -60,7 +60,7 @@ namespace Eppoi.Server.Controllers
             if (result == null) return BadRequest(ResponseFactory.WithError("Login Failed."));
 
             if (result.Token == null && result.Preferences == null) return BadRequest(ResponseFactory.WithError("Incorrect Password."));
-            if (result.Token != null && result.Preferences != null)
+            if (result.Token == null && result.Preferences != null)
             {
                 var code = await _authenticationService.SendVerificationEmail(login.UserOrEmail);
                 return BadRequest(ResponseFactory.WithError(code));
