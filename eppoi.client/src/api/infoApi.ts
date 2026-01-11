@@ -20,12 +20,18 @@ export interface Category {
 }
 
 export interface DiscoverItem {
-  entityId: string;
+  id: string;
+  name: string;
   entityName: string;
   imagePath: string;
   badgeText: string;
   address?: string;  
   date?: string;  
+  category: string;  
+  latitude?: number;
+  longitude?: number;
+  dietaryNeeds?: Array<string>;
+  audience?: string;
 }
 
 export interface PoiItem extends DiscoverItem {
@@ -37,6 +43,7 @@ export interface PoiItem extends DiscoverItem {
 }
 
 export interface DiscoverListResponse extends ApiResponse {
+  success: boolean;
   result: {
     result: Array<DiscoverItem>
   };
@@ -68,4 +75,11 @@ export async function getPoiDetail(id: string): Promise<GetPoiResponse> {
   return invokeApi(async () => {
     return await apiClient.get<GetPoiResponse>('/GetPOIById?id=' + id);
   }, 'Errore durante il recupero delle categorie');
+}
+
+export async function getAllPois(): Promise<DiscoverListResponse> {
+  return invokeApi(async () => {
+    // For now we don't paginate, since there is not a huge amount of returned data
+    return await apiClient.get<DiscoverListResponse>('/GetBaseInformation?skip=0&take=1000');
+  }, 'Errore durante il recupero di tutti i tipi di interesse ');
 }

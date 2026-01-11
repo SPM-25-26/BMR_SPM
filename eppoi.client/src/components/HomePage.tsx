@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, useRef, useMemo, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, MessageCircle, X, Send, MapPin, Calendar, Navigation, Newspaper, Briefcase, ChevronLeft, ChevronRight, Settings } from 'lucide-react';
 import logoImage from 'figma:asset/958defa264c22f47e7a42e2e88ba5be34b61d176.png';
-import { getCategories, getDiscoverList, type Category, type DiscoverItem } from '../api/infoApi';
+import { STORAGE_CATEGORIES_KEY, STORAGE_POIS_KEY } from '../api/apiUtils';
+import { getCategories, getDiscoverList, type Category, type DiscoverItem, getAllPois } from '../api/infoApi';
 import LoadingSpinner from './ui/LoadingSpinner';
 import ErrorModal from './ui/ErrorModal';
 import { getMediaUrl } from '../config/constants';
@@ -52,6 +53,7 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const cachedCategories = useRef<Array<Category> | null>(null);
+  const cachedPois = useRef<Array<DiscoverItem> | null>(null);
 
   const { 
     isLoading, 
@@ -62,8 +64,8 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
     resetLoadingFlag 
   } = useApiDataLoader<Array<Category>>({ 
     onLogout,
-    onSuccess: async (categories) => {
-      cachedCategories.current = categories;
+    onSuccess: async () => {
+      // Handled directly on returned result of loadData
     }
   });
 
@@ -128,11 +130,15 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
   }, [loadSelectedDiscoveryType, getSelectedDiscoverType]);
 
   const loadMunicipalityData = useCallback(async () => {
-    const result = await loadData(getCategories);
-    if (result) {
-      await loadCurrentSelectedDiscoveryType();
+    const categoriesOutput = await loadData(getCategories, { localStorageKey: STORAGE_CATEGORIES_KEY });
+    cachedCategories.current = categoriesOutput?.result;
+
+    if (categoriesOutput) {
+      const poisResult = await loadData(getAllPois, { localStorageKey: STORAGE_POIS_KEY });
+      cachedPois.current = poisResult;
+      setDiscoveryData(cachedPois.current);      
     }
-  }, [loadData, loadCurrentSelectedDiscoveryType]);
+  }, [loadData]);
 
   const handleRetry = useCallback(async () => {
     closeErrorModal();
@@ -188,15 +194,17 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
   const getFilteredContent = useCallback(() => {
     if (!discoveryData || !Array.isArray(discoveryData)) return [];
 
-    return discoveryData.map(item => ({
+    const output = discoveryData.map(item => ({
       ...item,
-      id: item.entityId,
-      title: item.entityName,
+      id: item.id,
+      title: item.name,
       category: item.badgeText,
       location: item.address || 'Cupra Marittima',
       image: getMediaUrl(item.imagePath),
       date: item.date
     }));
+
+    return output;
   }, [discoveryData]);
 
   const filteredContent = useMemo(() => getFilteredContent(), [getFilteredContent]);
@@ -305,7 +313,8 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
           </div>
 
           {/* Interests Filter */}
-          <div className="mb-5 sm:mb-6 md:mb-8">
+          {/* For now disabled */}
+          <div className="mb-5 sm:mb-6 md:mb-8" style={{ display: 'none' }}>
             <div className="flex flex-wrap gap-2 sm:gap-2 md:gap-3">
               {interests.map((interest) => {
                 const Icon = interest.icon;
@@ -327,6 +336,11 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
               })}
             </div>
           </div>
+
+          <h3 className="text-[#004d99] text-[18px] sm:text-[20px] md:text-[28px] font-['Titillium_Web:Bold',sans-serif] mb-3 sm:mb-4">
+            Scopri i punti di interesse più vicini al tuo stile di viaggio:
+          </h3>
+          <hr className="border-[#bfdfff] mb-5 sm:mb-6 md:mb-8" />
 
           {/* Recommendations */}
           <div>
