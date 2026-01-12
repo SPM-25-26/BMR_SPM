@@ -1,6 +1,6 @@
+import { Navigation, Calendar, Newspaper, Briefcase, MapPin, Loader2, LogOut, MessageCircle, X, Send, ChevronLeft, ChevronRight, Settings, Leaf, Milk, Wheat } from 'lucide-react';
 import { useState, useEffect, useCallback, useRef, useMemo, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, MessageCircle, X, Send, MapPin, Calendar, Navigation, Newspaper, Briefcase, ChevronLeft, ChevronRight, Settings, Loader2 } from 'lucide-react';
 import logoImage from 'figma:asset/958defa264c22f47e7a42e2e88ba5be34b61d176.png';
 import { STORAGE_CATEGORIES_KEY, STORAGE_POIS_KEY } from '../api/apiUtils';
 import { getCategories, getDiscoverList, type Category, type DiscoverItem, getAllPois } from '../api/infoApi';
@@ -422,7 +422,9 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
         ...item,
         id: item.id,
         title: item.name,
-        category: item.badgeText,
+        cardBadge: item.badgeText,
+        dietaryNeeds: item.dietaryNeeds,
+        category: item.category,
         location: item.address || 'Cupra Marittima',
         image: getMediaUrl(item.imagePath),
         date: item.date,
@@ -627,7 +629,12 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
           <div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
               {displayedContent.map((rec, index) => (
-                <RecommendationCard key={`${rec.id}-${index}`} recommendation={rec} onClick={() => handleCardClick(rec)} />
+                <RecommendationCard 
+                  key={`${rec.id}-${index}`} 
+                  recommendation={rec} 
+                  onClick={() => handleCardClick(rec)}
+                  userPreferences={userPreferences}
+                />
               ))}
             </div>
 
@@ -834,13 +841,56 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
 interface RecommendationCardProps {
   recommendation: any;
   onClick: (recommendation: any) => void;
+  userPreferences: {
+    interests: string[];
+    travelStyle: string;
+    dietaryNeeds: string[];
+  };
 }
 
-const RecommendationCard = memo(function RecommendationCard({ recommendation, onClick }: RecommendationCardProps) {
+const RecommendationCard = memo(function RecommendationCard({ recommendation, onClick, userPreferences }: RecommendationCardProps) {
   const handleClick = useCallback(() => {
     onClick(recommendation);
   }, [onClick, recommendation]);
+  
+  // Determina se mostrare il badge "adatto a bambini"
+  const showFamilyBadge = recommendation.category === 'Event' && userPreferences.travelStyle === 'famiglia';
+  
+  // Mappa le esigenze dietetiche con icone e testi
+  const dietaryNeedsConfig: Record<string, { icon: typeof Leaf; text: string; emoji?: string }> = {
+    'Adatto ai vegetariani': { icon: Leaf, text: 'Adatto ai vegetariani' },
+    'Alternative senza lattosio': { icon: Milk, text: 'Alternative senza lattosio' },
+    'Adatto ai celiaci': { icon: Wheat, text: 'Adatto ai celiaci' }
+  };
 
+  // Mappa user preferences alle etichette del backend
+  const userDietaryNeedsMap: Record<string, string> = {
+    'celiachia': 'Adatto ai celiaci',
+    'lattosio': 'Alternative senza lattosio',
+    'vegetariano': 'Adatto ai vegetariani'
+  };
+
+  // Filtra le esigenze dietetiche da mostrare
+  const dietaryBadgesToShow = useMemo(() => {
+    if (recommendation.category !== 'Restaurant' || !userPreferences.dietaryNeeds?.length || !recommendation.dietaryNeeds?.length) {
+      return [];
+    }
+
+    const badges: Array<{ icon: typeof Leaf; text: string }> = [];
+    
+    for (const userDiet of userPreferences.dietaryNeeds) {
+      const mappedDiet = userDietaryNeedsMap[userDiet.toLowerCase()];
+      if (mappedDiet && recommendation.dietaryNeeds.includes(mappedDiet)) {
+        const config = dietaryNeedsConfig[mappedDiet];
+        if (config) {
+          badges.push(config);
+        }
+      }
+    }
+    
+    return badges;
+  }, [recommendation.category, recommendation.dietaryNeeds, userPreferences.dietaryNeeds]);
+  
   return (
     <div onClick={handleClick} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow cursor-pointer">
       <div className="h-36 sm:h-40 md:h-48 bg-gray-200 overflow-hidden">
@@ -853,7 +903,7 @@ const RecommendationCard = memo(function RecommendationCard({ recommendation, on
       <div className="p-3 sm:p-3 md:p-4">
         <div className="flex items-center justify-between mb-1.5 sm:mb-2">
           <span className="bg-[#bfdfff] text-[#004080] px-2 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-[11px] md:text-[12px] font-['Titillium_Web:SemiBold',sans-serif]">
-            {recommendation.category}
+            {recommendation.cardBadge}
           </span>
           {recommendation.date && (
             <div className="flex items-center gap-1 text-[#0066cc]">
@@ -864,6 +914,37 @@ const RecommendationCard = memo(function RecommendationCard({ recommendation, on
             </div>
           )}
         </div>
+        
+        {/* "adatto a bambini" badge for users with family preferences */}
+        {showFamilyBadge && (
+          <div className="mb-2">
+            <span className="inline-flex items-center gap-1 bg-[#bfdfff] text-[#004080] px-2 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-[11px] md:text-[12px] font-['Titillium_Web:SemiBold',sans-serif]">
+              <span className="text-[12px] sm:text-[14px]">👶</span>
+              Adatto a bambini
+            </span>
+          </div>
+        )}
+
+        {/* Dietary needs badges for restaurants */}
+        {dietaryBadgesToShow.length > 0 && (
+          <div className="mb-2 flex flex-wrap gap-1.5">
+            {dietaryBadgesToShow.map((badge, index) => {
+              const Icon = badge.icon;
+              return (
+                <span
+                  key={index}
+                  className="inline-flex items-center gap-1 leading-none bg-[#bfdfff] text-[#004080] px-2 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-[11px] md:text-[12px] font-['Titillium_Web:SemiBold',sans-serif]"
+                >
+                  <Icon className="inline-block align-middle shrink-0 w-3 h-3 sm:w-3 sm:h-3" />
+                  <span className="inline whitespace-nowrap">
+                    {badge.text}
+                  </span>
+                </span>
+              );
+            })}
+          </div>
+        )}
+
         <h4 className="text-[#004080] text-[15px] sm:text-[16px] md:text-[18px] font-['Titillium_Web:Bold',sans-serif] mb-1.5 sm:mb-2 overflow-hidden text-ellipsis line-clamp-2">
           {recommendation.title}
         </h4>
