@@ -62,7 +62,8 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const loaderRef = useRef<HTMLDivElement>(null);
 
-  const cachedCategories = useRef<Array<Category> | null>(null);
+  // Cambiato da useRef a useState per le categorie
+  const [categories, setCategories] = useState<Array<Category> | null>(null);
   const cachedPois = useRef<Array<DiscoverItem> | null>(null);
 
   const { 
@@ -196,7 +197,8 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
     }
 
     const categoriesOutput = await loadData(getCategories, { localStorageKey: STORAGE_CATEGORIES_KEY });
-    cachedCategories.current = categoriesOutput?.result;
+    // Cambiato da cachedCategories.current a setCategories
+    setCategories(categoriesOutput || null);
 
     if (categoriesOutput) {
       const poisResult = await loadData(getAllPois, { localStorageKey: STORAGE_POIS_KEY });
@@ -775,7 +777,7 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
           userName={user.name}
           userEmail={user.email}
           userPreferences={userPreferences}
-          categories={cachedCategories.current}
+          categories={categories}
           onEditPreferences={onEditPreferences}
           onClose={() => setIsSettingsOpen(false)}
         />

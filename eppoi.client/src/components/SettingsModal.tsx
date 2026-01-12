@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { X, User, Mail, Landmark, Newspaper, Hotel, Calendar, MapPin, Utensils, ShoppingBag, Sparkles, Users, UsersRound, WheatOff, Milk, Leaf, Edit } from 'lucide-react';
+import { X, User, Mail, Users, UsersRound, WheatOff, Milk, Leaf, Edit } from 'lucide-react';
 import { type Category } from '../api/infoApi';
 import { CATEGORY_INTERESTS } from '../api/apiUtils';
 
@@ -132,22 +132,22 @@ export default function SettingsModal({
               {userPreferences.interests.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {userPreferences.interests.map((interestId) => {
-                    // Trova la categoria corrispondente usando l'ID
+                    const categoryDetails = categories?.find(cat => cat.name === interestId);
+                    
                     const categoryInterest = CATEGORY_INTERESTS.find(cat => cat.id === interestId);
-                    if (!categoryInterest) return null;
+                    const Icon = categoryInterest?.icon;
 
-                    // Trova i dettagli della categoria dalle API (se disponibili)
-                    const categoryDetails = categories?.result?.find(cat => cat.name === interestId);
-                    const Icon = categoryInterest.icon;
+                    // Fallback if category not found in APIs (should not happen)
+                    const displayLabel = categoryDetails?.label || categoryInterest?.name || interestId;
 
                     return (
                       <div
                         key={interestId}
                         className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-[#e6f2ff] border border-[#0066cc] rounded-full"
                       >
-                        <Icon className="w-4 h-4 text-[#0066cc]" />
+                        {Icon && <Icon className="w-4 h-4 text-[#0066cc]" />}
                         <span className="text-[14px] sm:text-[15px] text-[#004d99] font-['Titillium_Web:SemiBold',sans-serif]">
-                          {categoryDetails?.label || categoryInterest.name || interestId}
+                          {displayLabel}
                         </span>
                       </div>
                     );
