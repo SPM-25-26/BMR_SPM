@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo, memo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, MessageCircle, X, Send, MapPin, Calendar, Navigation, Newspaper, Briefcase, ChevronLeft, ChevronRight, Settings } from 'lucide-react';
+import { LogOut, MessageCircle, X, Send, MapPin, Calendar, Navigation, Newspaper, Briefcase, ChevronLeft, ChevronRight, Settings, Loader2 } from 'lucide-react';
 import logoImage from 'figma:asset/958defa264c22f47e7a42e2e88ba5be34b61d176.png';
 import { STORAGE_CATEGORIES_KEY, STORAGE_POIS_KEY } from '../api/apiUtils';
 import { getCategories, getDiscoverList, type Category, type DiscoverItem, getAllPois } from '../api/infoApi';
@@ -40,6 +40,8 @@ interface Interest {
   discoverType: DiscoverType;
 }
 
+const ITEMS_PER_PAGE = 20;
+
 export default function HomePage({ user, onLogout, userPreferences }: HomePageProps) {
   const navigate = useNavigate();
   const [selectedInterests, setSelectedInterests] = useState<string[]>(['Punti di interesse']);
@@ -54,6 +56,11 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [gpsError, setGpsError] = useState<{ title: string; message: string } | null>(null);
   const [showGpsErrorModal, setShowGpsErrorModal] = useState(false);
+  
+  // Lazy loading states
+  const [displayedItemsCount, setDisplayedItemsCount] = useState(ITEMS_PER_PAGE);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const loaderRef = useRef<HTMLDivElement>(null);
 
   const cachedCategories = useRef<Array<Category> | null>(null);
   const cachedPois = useRef<Array<DiscoverItem> | null>(null);
@@ -337,7 +344,8 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
     return score;
   }, [parseEventDate]);
 
-  const getFilteredContent = useCallback(() => {
+  // Get all filtered and sorted content - MEMOIZED
+  const allSortedItems = useMemo(() => {
     if (!discoveryData || !Array.isArray(discoveryData)) return [];
 
     // Score based on priorities
@@ -420,17 +428,63 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
       };
     });
 
-    // First 20 most appropriate results
+    // Sort all items by score
     const sortedItems = scoredItems.sort((a, b) => b.score - a.score);
-
-    const top20 = sortedItems.slice(0, 20);
 
     console.log('>>>sorted items'); console.log(sortedItems);
 
-    return top20;
-  }, [discoveryData, userLocation, userPreferences, calculateDistance, calculateEventDateScore]);
+    return sortedItems;
+  }, [discoveryData, userLocation, userPreferences, calculateDistance, calculateEventDateScore, dietaryNeedsMap, interestToCategoryMap]);
 
-  const filteredContent = useMemo(() => getFilteredContent(), [getFilteredContent]);
+  // Get currently displayed items based on displayedItemsCount
+  const displayedContent = useMemo(() => {
+    return allSortedItems.slice(0, displayedItemsCount);
+  }, [allSortedItems, displayedItemsCount]);
+
+  // Load more items function
+  const loadMoreItems = useCallback(() => {
+    if (isLoadingMore) return;
+    
+    const totalItems = allSortedItems.length;
+    if (displayedItemsCount >= totalItems) return;
+
+    setIsLoadingMore(true);
+    
+    // Simulate loading delay (rimuovi in produzione se non necessario)
+    setTimeout(() => {
+      setDisplayedItemsCount(prev => Math.min(prev + ITEMS_PER_PAGE, totalItems));
+      setIsLoadingMore(false);
+    }, 500);
+  }, [displayedItemsCount, isLoadingMore, allSortedItems.length]);
+
+  // Intersection Observer for infinite scroll
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const firstEntry = entries[0];
+        if (firstEntry.isIntersecting) {
+          loadMoreItems();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    const currentLoader = loaderRef.current;
+    if (currentLoader) {
+      observer.observe(currentLoader);
+    }
+
+    return () => {
+      if (currentLoader) {
+        observer.unobserve(currentLoader);
+      }
+    };
+  }, [loadMoreItems]);
+
+  // Reset displayed count when data changes
+  useEffect(() => {
+    setDisplayedItemsCount(ITEMS_PER_PAGE);
+  }, [discoveryData]);
 
   // Pull-to-refresh: usa ref per evitare ricreazione listener
   useEffect(() => {
@@ -461,6 +515,8 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
   if (isLoading) {
     return <LoadingSpinner message="Caricamento dati in corso..." />;
   }
+
+  const hasMoreItems = displayedItemsCount < allSortedItems.length;
 
   return (
     <div className="flex flex-col min-h-screen bg-[#f5f5f5]">
@@ -568,10 +624,36 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
           {/* Recommendations */}
           <div>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
-              {filteredContent.map((rec, index) => (
-                <RecommendationCard key={index} recommendation={rec} onClick={() => handleCardClick(rec)} />
+              {displayedContent.map((rec, index) => (
+                <RecommendationCard key={`${rec.id}-${index}`} recommendation={rec} onClick={() => handleCardClick(rec)} />
               ))}
             </div>
+
+            {/* Loader Trigger & Spinner */}
+            {hasMoreItems && (
+              <div 
+                ref={loaderRef} 
+                className="flex items-center justify-center py-8 sm:py-10 md:py-12"
+              >
+                {isLoadingMore && (
+                  <div className="flex flex-col items-center gap-3">
+                    <Loader2 className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 text-[#0066cc] animate-spin" />
+                    <p className="text-[#004d99] text-[14px] sm:text-[15px] md:text-[16px] font-['Titillium_Web:SemiBold',sans-serif]">
+                      Caricamento...
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* End of Results Message */}
+            {!hasMoreItems && displayedContent.length > 0 && (
+              <div className="flex items-center justify-center py-8 sm:py-10 md:py-12">
+                <p className="text-gray-500 text-[14px] sm:text-[15px] md:text-[16px] font-['Titillium_Web:Regular',sans-serif]">
+                  Hai visualizzato tutti i risultati
+                </p>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -745,6 +827,11 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
       
     </div>
   );
+}
+
+interface RecommendationCardProps {
+  recommendation: any;
+  onClick: (recommendation: any) => void;
 }
 
 const RecommendationCard = memo(function RecommendationCard({ recommendation, onClick }: RecommendationCardProps) {
