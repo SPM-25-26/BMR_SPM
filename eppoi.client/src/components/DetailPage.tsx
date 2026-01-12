@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, MapPin, Calendar, X, ChevronLeft as ArrowLeft, ChevronRight as ArrowRight } from 'lucide-react';
 import logoImage from 'figma:asset/958defa264c22f47e7a42e2e88ba5be34b61d176.png';
 import { getPoiDetail, type PoiItem } from '../api/infoApi';
-import { ApiErrorWithResponse } from '../api/apiUtils';
+import { ApiErrorWithResponse, itemCategoriesToEnumValue } from '../api/apiUtils';
 import LoadingSpinner from './ui/LoadingSpinner';
 import ErrorModal from './ui/ErrorModal';
 import { getMediaUrl } from '../config/constants';
@@ -118,6 +118,15 @@ export default function DetailPage({ onLogout }: DetailPageProps) {
       return;
     }
 
+    const category = params.get('cat');
+    if (!category || !(category in itemCategoriesToEnumValue)) {
+      // invalid category, return to home
+      navigate('/');
+      return;
+    }
+
+    const categoryEnum = itemCategoriesToEnumValue[category as keyof typeof itemCategoriesToEnumValue];
+    
     // Avoid duplicate calls during re-renders
     if (dataLoadingRef.current) {
       return;
@@ -127,11 +136,9 @@ export default function DetailPage({ onLogout }: DetailPageProps) {
     dataLoadingRef.current = true;
 
     try {      
-      const response = await getPoiDetail(id);
+      const response = await getPoiDetail(id, categoryEnum);
       if (response.success && response.result) {
-        console.error('have resp');
-        console.log(response.result.result);
-        setItem(response.result.result);
+        setItem(response.result);
       } else {
         setErrorState({
           title: 'Errore nel caricamento',
@@ -212,10 +219,10 @@ export default function DetailPage({ onLogout }: DetailPageProps) {
           {/* Title and Category */}
           <div className="bg-white rounded-lg shadow-md p-4 sm:p-5 md:p-6 mb-4 sm:mb-5">
             <h1 className="text-[#004d99] text-[24px] sm:text-[28px] md:text-[32px] font-['Titillium_Web:Bold',sans-serif] mb-2">
-              {item.entityName}
+              {item.name}
             </h1>
             <span className="inline-block bg-[#bfdfff] text-[#004080] px-3 py-1 rounded-full text-[12px] sm:text-[13px] md:text-[14px] font-['Titillium_Web:SemiBold',sans-serif] mb-3">
-              {item.badgeText}
+              {item.type}
             </span>
             
             {/* Location and Date */}

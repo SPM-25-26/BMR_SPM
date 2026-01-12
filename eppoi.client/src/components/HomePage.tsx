@@ -116,13 +116,9 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
   }, []);
 
   const handleCardClick = useCallback((recommendation: DiscoverItem) => {
-    const selectedDiscoveryType = getSelectedDiscoverType();
-    if (selectedDiscoveryType === DiscoverType.Poi) {
-      navigate('/detail?type=' + selectedDiscoveryType + '&id=' + recommendation.entityId);
-      console.error('GO TO DETAIL');
-    } else {
-      setShowWorkInProgressModal(true);
-    }
+    navigate('/detail?cat=' + recommendation.category + '&id=' + recommendation.id);
+    
+    //  setShowWorkInProgressModal(true);
   }, [getSelectedDiscoverType, navigate]);
 
   const loadSelectedDiscoveryType = useCallback(async (selectedDiscoveryType: DiscoverType) => {
@@ -391,6 +387,7 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
         }
       }
 
+      let calcDistance = -1;
       // 4. DISTANCE or EVENT DATE bonus
       if (isEvent) {
         // For events: score based on event date proximity (not distance)
@@ -401,7 +398,7 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
       } else {
         // For non-events: score based on geographic distance (only if userLocation available)
         if (userLocation && item.latitude != null && item.longitude != null && item.latitude !== 0 && item.longitude !== 0) {
-          const distance = calculateDistance(
+          calcDistance = calculateDistance(
             userLocation.latitude,
             userLocation.longitude,
             item.latitude,
@@ -411,8 +408,8 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
           // Bonus greater if item is nearer
           // 0 km distance = maximum bonus (500), distance >= 50 km = bonus 0
           const maxDistanceForBonus = 50; // km
-          if (distance < maxDistanceForBonus) {
-            const distanceBonus = Math.round(SCORE_DISTANCE_MAX * (1 - distance / maxDistanceForBonus));
+          if (calcDistance < maxDistanceForBonus) {
+            const distanceBonus = Math.round(SCORE_DISTANCE_MAX * (1 - calcDistance / maxDistanceForBonus));
             score += distanceBonus;
           }
         }
@@ -428,7 +425,8 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
         location: item.address || 'Cupra Marittima',
         image: getMediaUrl(item.imagePath),
         date: item.date,
-        score
+        score,
+        distance: calcDistance
       };
     });
 
@@ -905,13 +903,21 @@ const RecommendationCard = memo(function RecommendationCard({ recommendation, on
           <span className="bg-[#bfdfff] text-[#004080] px-2 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-[11px] md:text-[12px] font-['Titillium_Web:SemiBold',sans-serif]">
             {recommendation.cardBadge}
           </span>
-          {recommendation.date && (
-            <div className="flex items-center gap-1 text-[#0066cc]">
-              <Calendar className="w-3 h-3 sm:w-3 sm:h-3 md:w-4 md:h-4" />
-              <span className="text-[10px] sm:text-[11px] md:text-[12px] font-['Titillium_Web:SemiBold',sans-serif]">
-                {recommendation.date}
+          {recommendation.category === 'Event' ? (
+            recommendation.date && (
+              <div className="flex items-center gap-1 text-[#0066cc]">
+                <Calendar className="w-3 h-3 sm:w-3 sm:h-3 md:w-4 md:h-4" />
+                <span className="text-[10px] sm:text-[11px] md:text-[12px] font-['Titillium_Web:SemiBold',sans-serif]">
+                  {recommendation.date}
+                </span>
+              </div>
+            )
+          ) : (
+            recommendation.distance !== undefined && recommendation.distance > -1 && (
+              <span className="bg-[#bfdfff] text-[#004080] px-2 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-[11px] md:text-[12px] font-['Titillium_Web:SemiBold',sans-serif]">
+                  {recommendation.distance.toFixed(1)}km                  
               </span>
-            </div>
+            )
           )}
         </div>
         

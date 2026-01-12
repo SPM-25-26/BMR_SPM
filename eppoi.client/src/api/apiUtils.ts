@@ -228,6 +228,18 @@ export const categoryToFlagMap: Record<string, PreferencesFlag> = {
   'EntertainmentLeisure': Preferences.P_Entertainment,
 };
 
+export const itemCategoriesToEnumValue = {
+  'ArtCulture': 0,
+  'Event': 1,
+  'Article': 2,
+  'Organization': 3,
+  'Restaurant': 4,
+  'Sleep': 5,
+  'Shopping': 6,
+  'Route': 7,
+  'Entertainment': 8
+}
+
 const dietaryToFlagMap: Record<string, PreferencesFlag> = {
   'celiachia': Preferences.F_GlutenFree,
   'lattosio': Preferences.F_DairyFree,

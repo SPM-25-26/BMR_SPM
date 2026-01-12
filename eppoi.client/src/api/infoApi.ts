@@ -1,5 +1,5 @@
 import type { EnumType } from '@ncoderz/superenum';
-import { invokeApi, type ApiResponse, getClient } from './apiUtils';
+import { invokeApi, type ApiResponse, getClient, itemCategoriesToEnumValue } from './apiUtils';
 
 const API_BASE = '/api/Information';
 
@@ -13,6 +13,8 @@ const DiscoverType = {
 }
 
 type DiscoverType = EnumType<typeof DiscoverType>;
+
+type CategoryEnum = EnumType<typeof itemCategoriesToEnumValue>;
 
 export interface Category {
   Name: string;
@@ -71,9 +73,9 @@ export async function getDiscoverList(type: DiscoverType): Promise<DiscoverListR
   }, 'Errore durante il recupero della discovery list di tipo ' + type);
 }
 
-export async function getPoiDetail(id: string): Promise<GetPoiResponse> {
+export async function getPoiDetail(id: string, category: CategoryEnum): Promise<GetPoiResponse> {
   return invokeApi(async () => {
-    return await apiClient.get<GetPoiResponse>('/GetPOIById?id=' + id);
+    return await apiClient.get<GetPoiResponse>('/GetDetails?id=' + id + '&category=' + category);
   }, 'Errore durante il recupero delle categorie');
 }
 
