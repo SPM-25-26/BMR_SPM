@@ -21,6 +21,8 @@ import {
   User,
   Users,
   UsersRound,
+  Heart,
+  Home,
   WheatOff,
   Milk,
   Leaf
@@ -202,9 +204,9 @@ export const CATEGORY_INTERESTS: Array<{
 
 export const travelStyles = [
   { id: "solo", name: "Viaggiatore solitario", icon: User },
-  { id: "coppia", name: "Coppia", icon: Users },
-  { id: "famiglia", name: "Famiglia", icon: UsersRound },
-  { id: "amici", name: "Gruppo di amici", icon: Users },
+  { id: "coppia", name: "Coppia", icon: Heart },
+  { id: "famiglia", name: "Famiglia", icon: Home },
+  { id: "amici", name: "Gruppo di amici", icon: UsersRound },
 ];
 
 export const dietaryOptions = [

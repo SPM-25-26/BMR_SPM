@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { X, User, Mail, Users, UsersRound, WheatOff, Milk, Leaf, Edit } from 'lucide-react';
+import { X, User, Mail, Heart, Home, UsersRound, WheatOff, Milk, Leaf, Edit } from 'lucide-react';
 import { type Category } from '../api/infoApi';
 import { CATEGORY_INTERESTS } from '../api/apiUtils';
 
@@ -44,9 +44,9 @@ export default function SettingsModal({
 
   const travelStylesMap: { [key: string]: { name: string; icon: any } } = {
     'solo': { name: 'Viaggiatore solitario', icon: User },
-    'coppia': { name: 'Coppia', icon: Users },
-    'famiglia': { name: 'Famiglia', icon: UsersRound },
-    'amici': { name: 'Gruppo di amici', icon: Users },
+    'coppia': { name: 'Coppia', icon: Heart },
+    'famiglia': { name: 'Famiglia', icon: Home },
+    'amici': { name: 'Gruppo di amici', icon: UsersRound },
   };
 
   const dietaryOptionsMap: { [key: string]: { name: string; icon: any } } = {
