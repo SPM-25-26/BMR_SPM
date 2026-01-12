@@ -41,6 +41,8 @@ interface Interest {
 }
 
 const ITEMS_PER_PAGE = 20;
+const SCROLL_POSITION_KEY = 'homepage_scroll_position';
+const DISPLAYED_ITEMS_KEY = 'homepage_displayed_items';
 
 export default function HomePage({ user, onLogout, userPreferences }: HomePageProps) {
   const navigate = useNavigate();
@@ -57,10 +59,13 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
   const [gpsError, setGpsError] = useState<{ title: string; message: string } | null>(null);
   const [showGpsErrorModal, setShowGpsErrorModal] = useState(false);
   
-  // Lazy loading states
-  const [displayedItemsCount, setDisplayedItemsCount] = useState(ITEMS_PER_PAGE);
+  const [displayedItemsCount, setDisplayedItemsCount] = useState(() => {
+    const saved = sessionStorage.getItem(DISPLAYED_ITEMS_KEY);
+    return saved ? parseInt(saved, 10) : ITEMS_PER_PAGE;
+  });
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const loaderRef = useRef<HTMLDivElement>(null);
+  const scrollRestoredRef = useRef(false);
 
   // Cambiato da useRef a useState per le categorie
   const [categories, setCategories] = useState<Array<Category> | null>(null);
@@ -116,10 +121,10 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
   }, []);
 
   const handleCardClick = useCallback((recommendation: DiscoverItem) => {
+    sessionStorage.setItem(SCROLL_POSITION_KEY, window.scrollY.toString());
+    sessionStorage.setItem(DISPLAYED_ITEMS_KEY, displayedItemsCount.toString());    
     navigate('/detail?cat=' + recommendation.category + '&id=' + recommendation.id);
-    
-    //  setShowWorkInProgressModal(true);
-  }, [getSelectedDiscoverType, navigate]);
+  }, [navigate, displayedItemsCount]);
 
   const loadSelectedDiscoveryType = useCallback(async (selectedDiscoveryType: DiscoverType) => {
     try {
@@ -483,12 +488,30 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
     };
   }, [loadMoreItems]);
 
-  // Reset displayed count when data changes
+  // Restore previous scroll position, if se
   useEffect(() => {
-    setDisplayedItemsCount(ITEMS_PER_PAGE);
+    if (!scrollRestoredRef.current && displayedContent.length > 0 && !isLoading) {
+      const savedPosition = sessionStorage.getItem(SCROLL_POSITION_KEY);
+      if (savedPosition) {
+        // Usa requestAnimationFrame per assicurarsi che il DOM sia renderizzato
+        requestAnimationFrame(() => {
+          window.scrollTo(0, parseInt(savedPosition, 10));
+          // Pulisci dopo il ripristino
+          sessionStorage.removeItem(SCROLL_POSITION_KEY);
+        });
+      }
+      scrollRestoredRef.current = true;
+    }
+  }, [displayedContent.length, isLoading]);
+
+  useEffect(() => {
+    // Resetta solo se non c'è una posizione salvata (navigazione nuova, non ritorno)
+    const savedPosition = sessionStorage.getItem(SCROLL_POSITION_KEY);
+    if (!savedPosition) {
+      setDisplayedItemsCount(ITEMS_PER_PAGE);
+    }
   }, [discoveryData]);
 
-  // Pull-to-refresh: usa ref per evitare ricreazione listener
   useEffect(() => {
     let touchStartY = 0;
     let touchEndY = 0;
