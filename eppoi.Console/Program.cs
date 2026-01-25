@@ -1,4 +1,5 @@
 ﻿using eppoi.Console;
+using eppoi.Models;
 using eppoi.Models.Data;
 using eppoi.Models.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -33,13 +34,27 @@ builder.ConfigureServices((context, services) =>
     })
     .AddEntityFrameworkStores<ApplicationDBContext>();
 
-    services.AddScoped<ImporterService>(); 
-
+    services.AddScoped<ImporterService>();
+    services.Configure<GoogleGeminiOptions>(context.Configuration.GetSection("Google"));
+    services.AddScoped<GeminiService>();
     services.AddSingleton(context.Configuration.GetSection("Links").Get<Link>());
 });
 
 var host = builder.Build();
 
+Console.WriteLine("I to Import, G to Ingest Data.");
+var x = Console.ReadLine();
 using var scope = host.Services.CreateScope();
-var importer = scope.ServiceProvider.GetRequiredService<ImporterService>();
-importer.Import();
+
+switch (x.ToLower())
+{
+    case "i":
+        var importer = scope.ServiceProvider.GetRequiredService<ImporterService>();
+        importer.Import();
+        break;
+    case "g":
+        var gemini = scope.ServiceProvider.GetRequiredService<GeminiService>();
+        Console.WriteLine("File Uploaded: \n");
+        Console.WriteLine(gemini.IngestFileToGemini("ragdata.json").GetAwaiter().GetResult());
+        break;
+}

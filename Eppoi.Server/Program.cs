@@ -1,3 +1,4 @@
+using eppoi.Models;
 using eppoi.Models.Data;
 using eppoi.Models.Entities;
 using eppoi.Server.Models.Factories;
@@ -110,11 +111,13 @@ builder.Services
 
 builder.Services.Configure<TokenOption>(builder.Configuration.GetSection("Authentication:Jwt"));
 builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection("Authentication:SmtpSandbox"));
+builder.Services.Configure<GoogleGeminiOptions>(builder.Configuration.GetSection("Google"));
 builder.Services.AddScoped<SmtpService>();
 builder.Services.AddScoped<TokenService>();
 builder.Services.AddScoped<OptionsService>();
 builder.Services.AddScoped<AuthenticationService>();
 builder.Services.AddScoped<InformationService>();
+builder.Services.AddScoped<GeminiService>();
 
 
 var app = builder.Build();

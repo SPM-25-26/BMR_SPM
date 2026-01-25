@@ -366,3 +366,4 @@ FodyWeavers.xsd
 .idea
 *.iml
 /eppoi.client/.env.development
+/eppoi.Console/ragdata.json
