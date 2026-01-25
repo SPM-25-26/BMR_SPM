@@ -1,5 +1,3 @@
-﻿using Google.GenAI;
-using Google.GenAI.Types;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.Extensions.Options;
 using System.Text.Json;
