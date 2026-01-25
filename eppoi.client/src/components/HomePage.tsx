@@ -1,5 +1,5 @@
-import { Navigation, Calendar, Newspaper, Briefcase, MapPin, Loader2, LogOut, MessageCircle, X, Send, ChevronLeft, ChevronRight, Settings, Leaf, Milk, Wheat } from 'lucide-react';
-import { useState, useEffect, useCallback, useRef, useMemo, memo } from 'react';
+import { Navigation, Calendar, Newspaper, Briefcase, MapPin, Loader2, LogOut, MessageCircle, Settings } from 'lucide-react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import logoImage from 'figma:asset/958defa264c22f47e7a42e2e88ba5be34b61d176.png';
 import { STORAGE_CATEGORIES_KEY, STORAGE_POIS_KEY } from '../api/apiUtils';
@@ -9,6 +9,11 @@ import ErrorModal from './ui/ErrorModal';
 import { getMediaUrl } from '../config/constants';
 import SettingsModal from './SettingsModal';
 import { useApiDataLoader } from '../hooks/useApiDataLoader';
+import RecommendationCard from './RecommendationCard';
+import Chatbot from './Chatbot';
+import ImageCarousel from './ImageCarousel';
+import { useGeolocation } from '../hooks/useGeolocation';
+import { useDiscoveryScoring } from '../hooks/useDiscoveryScoring';
 
 const DiscoverType = {
   Poi: 0,
@@ -48,16 +53,10 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
   const navigate = useNavigate();
   const [selectedInterests, setSelectedInterests] = useState<string[]>(['Punti di interesse']);
   const [isChatOpen, setIsChatOpen] = useState(false);
-  const [chatMessages, setChatMessages] = useState<Array<{ text: string; isUser: boolean }>>([]);
-  const [chatInput, setChatInput] = useState('');
-  const [currentSlide, setCurrentSlide] = useState(0);
   const [discoveryData, setDiscoveryData] = useState<Array<DiscoverItem> | null>(null);
   const [showWorkInProgressModal, setShowWorkInProgressModal] = useState(false);
   const [showLoadDiscoveryTypeErrorModal, setShowLoadDiscoveryTypeErrorModal] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
-  const [gpsError, setGpsError] = useState<{ title: string; message: string } | null>(null);
-  const [showGpsErrorModal, setShowGpsErrorModal] = useState(false);
   
   const [displayedItemsCount, setDisplayedItemsCount] = useState(() => {
     const saved = sessionStorage.getItem(DISPLAYED_ITEMS_KEY);
@@ -67,9 +66,17 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
   const loaderRef = useRef<HTMLDivElement>(null);
   const scrollRestoredRef = useRef(false);
 
-  // Cambiato da useRef a useState per le categorie
   const [categories, setCategories] = useState<Array<Category> | null>(null);
   const cachedPois = useRef<Array<DiscoverItem> | null>(null);
+
+  // Usa il custom hook per la geolocalizzazione
+  const {
+    location: userLocation,
+    error: gpsError,
+    showErrorModal: showGpsErrorModal,
+    closeErrorModal: closeGpsErrorModal,
+    requestLocation
+  } = useGeolocation();
 
   const { 
     isLoading, 
@@ -91,14 +98,6 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
     getMediaUrl('/Media/Organization/mobile-home-00356330449-435e0456-03cd-45d9-892d-bfc96c649ffd.webp'),
     getMediaUrl('/Media/Organization/mobile-home-00356330449-aad1daeb-9faa-43a4-ad51-b028016766ae.webp'),
   ], []);
-
-  const nextSlide = useCallback(() => {
-    setCurrentSlide((prev) => (prev + 1) % cupraImages.length);
-  }, [cupraImages.length]);
-
-  const prevSlide = useCallback(() => {
-    setCurrentSlide((prev) => (prev - 1 + cupraImages.length) % cupraImages.length);
-  }, [cupraImages.length]);
 
   const interests: Interest[] = useMemo(() => [
     { name: 'Punti di interesse', icon: Navigation, discoverType: DiscoverType.Poi },
@@ -141,64 +140,11 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
     await loadSelectedDiscoveryType(getSelectedDiscoverType());
   }, [loadSelectedDiscoveryType, getSelectedDiscoverType]);
 
-  const closeGpsErrorModal = useCallback(() => {
-    setShowGpsErrorModal(false);
-    setGpsError(null);
-  }, []);
-
   const loadMunicipalityData = useCallback(async () => {
-    // GPS position of user (if he allows it)
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          console.log('Posizione GPS ottenuta:', { latitude, longitude });
-          setUserLocation({ latitude, longitude });          
-        },
-        (error) => {
-          console.error('Errore nel recupero della posizione GPS:', error.message);
-          
-          let errorTitle = 'Errore GPS';
-          let errorMessage = '';
-          
-          switch (error.code) {
-            case error.PERMISSION_DENIED:
-              errorTitle = 'Permesso GPS negato';
-              errorMessage = 'Per utilizzare questa funzionalità, è necessario attivare i permessi di localizzazione nelle impostazioni del browser.';
-              break;
-            case error.POSITION_UNAVAILABLE:
-              errorTitle = 'GPS non disponibile';
-              errorMessage = 'La posizione GPS non è disponibile. Controlla le impostazioni del tuo dispositivo e assicurati che il GPS sia attivo.';
-              break;
-            case error.TIMEOUT:
-              errorTitle = 'Timeout GPS';
-              errorMessage = 'Il recupero della posizione GPS ha impiegato troppo tempo. Controlla le impostazioni del tuo dispositivo e riprova.';
-              break;
-            default:
-              errorTitle = 'Errore GPS';
-              errorMessage = 'Si è verificato un errore durante il recupero della posizione GPS.';
-          }
-
-          setGpsError({ title: errorTitle, message: errorMessage });
-          setShowGpsErrorModal(true);
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0
-        }
-      );
-    } else {
-      console.error('Geolocation non è supportata da questo browser');
-      setGpsError({ 
-        title: 'GPS non supportato', 
-        message: 'Il tuo browser non supporta la geolocalizzazione. Prova ad utilizzare un browser più recente.' 
-      });
-      setShowGpsErrorModal(true);
-    }
+    // Richiedi la posizione GPS tramite il custom hook
+    requestLocation();
 
     const categoriesOutput = await loadData(getCategories, { localStorageKey: STORAGE_CATEGORIES_KEY });
-    // Cambiato da cachedCategories.current a setCategories
     setCategories(categoriesOutput || null);
 
     if (categoriesOutput) {
@@ -206,7 +152,7 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
       cachedPois.current = poisResult;
       setDiscoveryData(cachedPois.current);      
     }
-  }, [loadData]);
+  }, [loadData, requestLocation]);
 
   const handleRetry = useCallback(async () => {
     closeErrorModal();
@@ -218,7 +164,6 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
     navigate('/onboarding');
   }, [navigate]);
 
-  // Caricamento iniziale - usa un flag per eseguire solo al mount
   const hasLoadedRef = useRef(false);
   useEffect(() => {
     if (!hasLoadedRef.current) {
@@ -228,221 +173,21 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
   }, [loadMunicipalityData]);
 
   const toggleInterest = useCallback((interest: string) => {
-    // Cannot deselect anything
     if (selectedInterests.includes(interest)) {
       return;
     }
     
-    // Current selection change
     setSelectedInterests([interest]);
     const selectedInterest = interests.find(i => i.name === interest);
     if (selectedInterest) {
       loadSelectedDiscoveryType(selectedInterest.discoverType);
     }
-  }, [selectedInterests, interests, loadSelectedDiscoveryType]);
-
-  const handleSendMessage = useCallback(() => {
-    if (chatInput.trim()) {
-      setChatMessages(prev => [...prev, { text: chatInput, isUser: true }]);
-      
-      setTimeout(() => {
-        const responses = [
-          'Ecco alcuni luoghi interessanti nelle vicinanze: il Duomo di Firenze, la Galleria degli Uffizi e Palazzo Vecchio.',
-          'Ti consiglio di provare la Trattoria Mario per cibo tradizionale toscano, oppure il Mercato Centrale.',
-          'Nelle vicinanze puoi visitare il Giardino di Boboli, un bellissimo parco storico con vista sulla città.',
-        ];
-        const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-        setChatMessages(prev => [...prev, { text: randomResponse, isUser: false }]);
-      }, 1000);
-      
-      setChatInput('');
-    }
-  }, [chatInput]);
-
-  // Interests -> POIs category mapping (unfortunately it doesn't match with cached categories)
-  const interestToCategoryMap: Record<string, string> = {
-    'ArtCulture': 'ArtCulture',
-    'Articles': 'Article',
-    'Sleep': 'Sleep',
-    'Events': 'Event',
-    'Routes': 'Route',
-    'EatAndDrink': 'Restaurant',
-    'Nature': 'Nature',
-    'Organizations': 'Organization',
-    'Shopping': 'Shopping',
-    'EntertainmentLeisure': 'Entertainment'
-  };
-
-  // dietaryNeeds -> POI value mapping
-  const dietaryNeedsMap: Record<string, string> = {
-    'celiachia': 'Adatto ai celiaci',
-    'lattosio': 'Alternative senza lattosio',
-    'vegetariano': 'Adatto ai vegetariani'
-  };
-
-  // Harversine formula for km distance between two coordinates
-  const calculateDistance = useCallback((lat1: number, lon1: number, lat2: number, lon2: number): number => {
-    const R = 6371; // Raggio della Terra in km
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = 
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-      Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  }, []);
-
-  // Parse event date string (format: 'DD/MM/YYYY' or 'DD/MM/YYYY - DD/MM/YYYY')
-  // Returns the start date, converting 2025 to 2026
-  const parseEventDate = useCallback((dateString: string): Date | null => {
-    if (!dateString) return null;
-    
-    // If it's a range, take only the first date
-    const startDateStr = dateString.includes(' - ') 
-      ? dateString.split(' - ')[0].trim() 
-      : dateString.trim();
-    
-    // Parse DD/MM/YYYY format
-    const parts = startDateStr.split('/');
-    if (parts.length !== 3) return null;
-    
-    const day = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed in JS
-    let year = parseInt(parts[2], 10);
-    
-    // Convert 2025 to 2026 as requested
-    if (year === 2025) {
-      year = 2026;
-    }
-    
-    if (isNaN(day) || isNaN(month) || isNaN(year)) return null;
-    
-    return new Date(year, month, day);
-  }, []);
-
-  // Calculate event date score (0-500): closer events get higher score
-  // TODO: handle range events
-  const calculateEventDateScore = useCallback((dateString: string): number => {
-    const eventDate = parseEventDate(dateString);
-    if (!eventDate) return 0;
-    
-    const today = new Date();
-    today.setHours(0, 0, 0, 0); // Normalize to start of day
-    
-    const diffMs = eventDate.getTime() - today.getTime();
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    
-    // If event is in the past, score is 0
-    if (diffDays < 0) return 0;
-    
-    // If event is today, score is 500
-    // If event is 365 days away or more, score is 0
-    // Linear interpolation in between
-    const maxDaysForBonus = 365;
-    if (diffDays >= maxDaysForBonus) return 0;
-
-    // Max points 500 if event is today
-    const score = Math.round(500 * (1 - diffDays / maxDaysForBonus));
-    return score;
-  }, [parseEventDate]);
+  }, [selectedInterests, interests, loadSelectedDiscoveryType]);  
 
   // Get all filtered and sorted content - MEMOIZED
-  const allSortedItems = useMemo(() => {
-    if (!discoveryData || !Array.isArray(discoveryData)) return [];
-
-    // Score based on priorities
-    const SCORE_FAMILY_EVENT = 10000;      // Max priority: events for families
-    const SCORE_DIETARY_NEEDS = 5000;      // Second priority: dietary needs
-    const SCORE_INTEREST_MATCH = 1000;     // Third priority: interests match
-    const SCORE_DISTANCE_MAX = 500;        // Bonus for proximity (non-events)
-    
-    const scoredItems = discoveryData.map(item => {
-      let score = 0;
-      const isEvent = item.category === 'Event';
-
-      // 1. TRAVEL STYLE "famiglia" - Events for families with kids
-      if (userPreferences.travelStyle === 'famiglia') {
-        if (isEvent && item.audience === 'Adulti e bambini') {
-          score += SCORE_FAMILY_EVENT;
-        }
-      }
-
-      // 2. DIETARY NEEDS - Restaurants with dietary needs alternatives
-      if (userPreferences.dietaryNeeds && userPreferences.dietaryNeeds.length > 0) {
-        if (item.category === 'Restaurant' && item.dietaryNeeds && item.dietaryNeeds.length > 0) {
-          for (const userDiet of userPreferences.dietaryNeeds) {
-            const mappedDiet = dietaryNeedsMap[userDiet.toLowerCase()];
-            if (mappedDiet && item.dietaryNeeds.includes(mappedDiet)) {
-              score += SCORE_DIETARY_NEEDS;
-              break; // Do not sum if has multiple alternatives, one is enough
-            }
-          }
-        }
-      }
-
-      // 3. INTERESTS - Categories corresponding to user interests
-      if (userPreferences.interests && userPreferences.interests.length > 0) {
-        for (const interest of userPreferences.interests) {
-          const mappedCategory = interestToCategoryMap[interest];
-          if (mappedCategory && item.category === mappedCategory) {
-            score += SCORE_INTEREST_MATCH;
-            break;
-          }
-        }
-      }
-
-      let calcDistance = -1;
-      // 4. DISTANCE or EVENT DATE bonus
-      if (isEvent) {
-        // For events: score based on event date proximity (not distance)
-        if (item.date) {
-          const eventDateScore = calculateEventDateScore(item.date);
-          score += eventDateScore;
-        }
-      } else {
-        // For non-events: score based on geographic distance (only if userLocation available)
-        if (userLocation && item.latitude != null && item.longitude != null && item.latitude !== 0 && item.longitude !== 0) {
-          calcDistance = calculateDistance(
-            userLocation.latitude,
-            userLocation.longitude,
-            item.latitude,
-            item.longitude
-          );
-
-          // Bonus greater if item is nearer
-          // 0 km distance = maximum bonus (500), distance >= 50 km = bonus 0
-          const maxDistanceForBonus = 50; // km
-          if (calcDistance < maxDistanceForBonus) {
-            const distanceBonus = Math.round(SCORE_DISTANCE_MAX * (1 - calcDistance / maxDistanceForBonus));
-            score += distanceBonus;
-          }
-        }
-      }
-
-      return {
-        ...item,
-        id: item.id,
-        title: item.name,
-        cardBadge: item.badgeText,
-        dietaryNeeds: item.dietaryNeeds,
-        category: item.category,
-        location: item.address || 'Cupra Marittima',
-        image: getMediaUrl(item.imagePath),
-        date: item.date,
-        score,
-        distance: calcDistance
-      };
-    });
-
-    // Sort all items by score
-    const sortedItems = scoredItems.sort((a, b) => b.score - a.score);
-
-    console.log('>>>sorted items'); console.log(sortedItems);
-
-    return sortedItems;
-  }, [discoveryData, userLocation, userPreferences, calculateDistance, calculateEventDateScore, dietaryNeedsMap, interestToCategoryMap]);
-
+  // Sostituisci tutto il blocco allSortedItems con:
+  const allSortedItems = useDiscoveryScoring(discoveryData, userLocation, userPreferences);
+  
   // Get currently displayed items based on displayedItemsCount
   const displayedContent = useMemo(() => {
     return allSortedItems.slice(0, displayedItemsCount);
@@ -591,29 +336,7 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
 
           {/* Cupra Carousel */}
           <div className="mb-5 sm:mb-6 md:mb-8">
-            <div className="bg-white rounded-lg shadow-md overflow-hidden">
-              <div className="relative">
-                <div className="h-48 sm:h-56 md:h-64 lg:h-80">
-                  <img
-                    src={cupraImages[currentSlide]}
-                    alt={`Cupra Marittima ${currentSlide + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <button
-                  onClick={prevSlide}
-                  className="absolute left-2 top-1/2 transform -translate-y-1/2 bg-white p-2 rounded-full shadow-md"
-                >
-                  <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8" />
-                </button>
-                <button
-                  onClick={nextSlide}
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-white p-2 rounded-full shadow-md"
-                >
-                  <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8" />
-                </button>
-              </div>
-            </div>
+            <ImageCarousel images={cupraImages} altPrefix="Cupra Marittima" />
           </div>
 
           {/* Interests Filter */}
@@ -697,98 +420,7 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
       </button>
 
       {/* Chatbot Modal */}
-      {isChatOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-end sm:items-end sm:justify-end z-50 p-0 sm:p-4 md:p-6">
-          <div className="bg-white rounded-t-lg sm:rounded-lg shadow-2xl w-full sm:w-full sm:max-w-md h-[90vh] sm:h-[85vh] md:h-[600px] flex flex-col">
-            {/* Chat Header */}
-            <div className="bg-[#0066cc] px-3 sm:px-4 md:px-6 py-3 sm:py-3.5 md:py-4 rounded-t-lg flex items-center justify-between">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <div className="bg-white p-1.5 sm:p-2 rounded-full">
-                  <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 text-[#0066cc]" />
-                </div>
-                <div>
-                  <h3 className="text-white text-[16px] sm:text-[18px] md:text-[20px] font-['Titillium_Web:Bold',sans-serif]">
-                    Assistente AI
-                  </h3>
-                  <p className="text-[#bfdfff] text-[11px] sm:text-[12px] md:text-[14px] font-['Titillium_Web:Regular',sans-serif]">
-                    Online
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setIsChatOpen(false)}
-                className="text-white hover:text-[#bfdfff] transition-colors"
-              >
-                <X className="w-5 h-5 sm:w-6 sm:h-6" />
-              </button>
-            </div>
-
-            {/* Chat Messages */}
-            <div className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 space-y-3 sm:space-y-4">
-              {chatMessages.length === 0 ? (
-                <div className="text-center text-gray-500 mt-3 sm:mt-4 md:mt-8">
-                  <p className="text-[13px] sm:text-[14px] md:text-[16px] font-['Titillium_Web:Regular',sans-serif] mb-3 sm:mb-4">
-                    Ciao! Come posso aiutarti oggi?
-                  </p>
-                  <div className="space-y-2">
-                    <button
-                      onClick={() => setChatInput('Cosa posso visitare vicino a me?')}
-                      className="block w-full text-left px-3 sm:px-3 md:px-4 py-2 sm:py-2 md:py-3 bg-[#f0f7ff] text-[#0066cc] rounded-lg hover:bg-[#bfdfff] transition-colors text-[12px] sm:text-[13px] md:text-[14px] font-['Titillium_Web:Regular',sans-serif]"
-                    >
-                      💡 Cosa posso visitare vicino a me?
-                    </button>
-                    <button
-                      onClick={() => setChatInput('Dove posso mangiare cibo tradizionale?')}
-                      className="block w-full text-left px-3 sm:px-3 md:px-4 py-2 sm:py-2 md:py-3 bg-[#f0f7ff] text-[#0066cc] rounded-lg hover:bg-[#bfdfff] transition-colors text-[12px] sm:text-[13px] md:text-[14px] font-['Titillium_Web:Regular',sans-serif]"
-                    >
-                      🍝 Dove posso mangiare cibo tradizionale?
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                chatMessages.map((msg, index) => (
-                  <div
-                    key={index}
-                    className={`flex ${msg.isUser ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div
-                      className={`max-w-[85%] sm:max-w-[85%] md:max-w-[80%] px-3 sm:px-3 md:px-4 py-2 sm:py-2 md:py-3 rounded-lg ${
-                        msg.isUser
-                          ? 'bg-[#0066cc] text-white'
-                          : 'bg-gray-100 text-[#004080]'
-                      }`}
-                    >
-                      <p className="text-[13px] sm:text-[13px] md:text-[14px] font-['Titillium_Web:Regular',sans-serif]">
-                        {msg.text}
-                      </p>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            {/* Chat Input */}
-            <div className="border-t p-2.5 sm:p-3 md:p-4">
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                  placeholder="Scrivi un messaggio..."
-                  className="flex-1 px-3 sm:px-3 md:px-4 py-2 sm:py-2 md:py-3 border-2 border-gray-200 rounded-lg focus:border-[#0066cc] focus:outline-none text-[13px] sm:text-[14px] font-['Titillium_Web:Regular',sans-serif]"
-                />
-                <button
-                  onClick={handleSendMessage}
-                  className="bg-[#0066cc] hover:bg-[#004d99] text-white px-3 sm:px-3 md:px-4 py-2 sm:py-2 md:py-3 rounded-lg transition-colors"
-                >
-                  <Send className="w-4 h-4 sm:w-5 sm:h-5" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <Chatbot isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
 
       {/* Settings Button */}
       <button
@@ -854,138 +486,6 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
         retryLabel="Riprova"
         cancelLabel="Chiudi"
       />
-      
     </div>
   );
 }
-
-interface RecommendationCardProps {
-  recommendation: any;
-  onClick: (recommendation: any) => void;
-  userPreferences: {
-    interests: string[];
-    travelStyle: string;
-    dietaryNeeds: string[];
-  };
-}
-
-const RecommendationCard = memo(function RecommendationCard({ recommendation, onClick, userPreferences }: RecommendationCardProps) {
-  const handleClick = useCallback(() => {
-    onClick(recommendation);
-  }, [onClick, recommendation]);
-  
-  // Determina se mostrare il badge "adatto a bambini"
-  const showFamilyBadge = recommendation.category === 'Event' && userPreferences.travelStyle === 'famiglia';
-  
-  // Mappa le esigenze dietetiche con icone e testi
-  const dietaryNeedsConfig: Record<string, { icon: typeof Leaf; text: string; emoji?: string }> = {
-    'Adatto ai vegetariani': { icon: Leaf, text: 'Adatto ai vegetariani' },
-    'Alternative senza lattosio': { icon: Milk, text: 'Alternative senza lattosio' },
-    'Adatto ai celiaci': { icon: Wheat, text: 'Adatto ai celiaci' }
-  };
-
-  // Mappa user preferences alle etichette del backend
-  const userDietaryNeedsMap: Record<string, string> = {
-    'celiachia': 'Adatto ai celiaci',
-    'lattosio': 'Alternative senza lattosio',
-    'vegetariano': 'Adatto ai vegetariani'
-  };
-
-  // Filtra le esigenze dietetiche da mostrare
-  const dietaryBadgesToShow = useMemo(() => {
-    if (recommendation.category !== 'Restaurant' || !userPreferences.dietaryNeeds?.length || !recommendation.dietaryNeeds?.length) {
-      return [];
-    }
-
-    const badges: Array<{ icon: typeof Leaf; text: string }> = [];
-    
-    for (const userDiet of userPreferences.dietaryNeeds) {
-      const mappedDiet = userDietaryNeedsMap[userDiet.toLowerCase()];
-      if (mappedDiet && recommendation.dietaryNeeds.includes(mappedDiet)) {
-        const config = dietaryNeedsConfig[mappedDiet];
-        if (config) {
-          badges.push(config);
-        }
-      }
-    }
-    
-    return badges;
-  }, [recommendation.category, recommendation.dietaryNeeds, userPreferences.dietaryNeeds]);
-  
-  return (
-    <div onClick={handleClick} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow cursor-pointer">
-      <div className="h-36 sm:h-40 md:h-48 bg-gray-200 overflow-hidden">
-        <img
-          src={recommendation.image}
-          alt={recommendation.title}
-          className="w-full h-full object-cover"
-        />
-      </div>
-      <div className="p-3 sm:p-3 md:p-4">
-        <div className="flex items-center justify-between mb-1.5 sm:mb-2">
-          <span className="bg-[#bfdfff] text-[#004080] px-2 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-[11px] md:text-[12px] font-['Titillium_Web:SemiBold',sans-serif]">
-            {recommendation.cardBadge}
-          </span>
-          {recommendation.category === 'Event' ? (
-            recommendation.date && (
-              <div className="flex items-center gap-1 text-[#0066cc]">
-                <Calendar className="w-3 h-3 sm:w-3 sm:h-3 md:w-4 md:h-4" />
-                <span className="text-[10px] sm:text-[11px] md:text-[12px] font-['Titillium_Web:SemiBold',sans-serif]">
-                  {recommendation.date}
-                </span>
-              </div>
-            )
-          ) : (
-            recommendation.distance !== undefined && recommendation.distance > -1 && (
-              <span className="bg-[#bfdfff] text-[#004080] px-2 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-[11px] md:text-[12px] font-['Titillium_Web:SemiBold',sans-serif]">
-                  {recommendation.distance.toFixed(1)}km                  
-              </span>
-            )
-          )}
-        </div>
-        
-        {/* "adatto a bambini" badge for users with family preferences */}
-        {showFamilyBadge && (
-          <div className="mb-2">
-            <span className="inline-flex items-center gap-1 bg-[#bfdfff] text-[#004080] px-2 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-[11px] md:text-[12px] font-['Titillium_Web:SemiBold',sans-serif]">
-              <span className="text-[12px] sm:text-[14px]">👶</span>
-              Adatto a bambini
-            </span>
-          </div>
-        )}
-
-        {/* Dietary needs badges for restaurants */}
-        {dietaryBadgesToShow.length > 0 && (
-          <div className="mb-2 flex flex-wrap gap-1.5">
-            {dietaryBadgesToShow.map((badge, index) => {
-              const Icon = badge.icon;
-              return (
-                <span
-                  key={index}
-                  className="inline-flex items-center gap-1 leading-none bg-[#bfdfff] text-[#004080] px-2 sm:px-2 md:px-3 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-[11px] md:text-[12px] font-['Titillium_Web:SemiBold',sans-serif]"
-                >
-                  <Icon className="inline-block align-middle shrink-0 w-3 h-3 sm:w-3 sm:h-3" />
-                  <span className="inline whitespace-nowrap">
-                    {badge.text}
-                  </span>
-                </span>
-              );
-            })}
-          </div>
-        )}
-
-        <h4 className="text-[#004080] text-[15px] sm:text-[16px] md:text-[18px] font-['Titillium_Web:Bold',sans-serif] mb-1.5 sm:mb-2 overflow-hidden text-ellipsis line-clamp-2">
-          {recommendation.title}
-        </h4>
-        {recommendation.location && (
-          <div className="flex items-center gap-1 text-gray-600">
-            <MapPin className="w-3 h-3 sm:w-3 sm:h-3 md:w-4 md:h-4" />
-            <span className="text-[12px] sm:text-[13px] md:text-[14px] font-['Titillium_Web:Regular',sans-serif]">
-              {recommendation.location}
-            </span>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-});

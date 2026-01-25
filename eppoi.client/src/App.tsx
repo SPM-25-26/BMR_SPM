@@ -215,7 +215,7 @@ export default function App() {
                     <Route
                         path="/detail"
                         element={
-                            <ProtectedRoute user={user}>
+                            <ProtectedRoute user={user} userPreferences={userPreferences}>
                               <DetailPage onLogout={handleLogout} />
                             </ProtectedRoute>
                         }
