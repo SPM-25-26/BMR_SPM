@@ -420,7 +420,7 @@ export default function HomePage({ user, onLogout, userPreferences }: HomePagePr
       </button>
 
       {/* Chatbot Modal */}
-      <Chatbot isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+      <Chatbot isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} onLogout={onLogout} />
 
       {/* Settings Button */}
       <button

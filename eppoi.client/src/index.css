@@ -2979,3 +2979,65 @@ html {
         transform: rotate(360deg);
     }
 }
+
+/* Chatbot custom styles */
+
+/* Error message bubble */
+.chatbot-error-bubble {
+    background-color: #fee2e2;
+    border: 1px solid #fca5a5;
+    border-radius: var(--radius);
+}
+
+.chatbot-error-text {
+    color: #dc2626;
+    font-family: 'Titillium Web:Regular', sans-serif;
+}
+
+.chatbot-retry-button {
+    color: #dc2626;
+    text-decoration: underline;
+    font-family: 'Titillium Web:Bold', sans-serif;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    transition: color 0.15s ease;
+}
+
+.chatbot-retry-button:hover {
+    color: #b91c1c;
+}
+
+/* Loading dots animation */
+@keyframes chatbot-bounce {
+    0%, 80%, 100% {
+        transform: translateY(0);
+    }
+    40% {
+        transform: translateY(-6px);
+    }
+}
+
+.chatbot-loading-dot {
+    width: 8px;
+    height: 8px;
+    background-color: #0066cc;
+    border-radius: 50%;
+    animation: chatbot-bounce 1.4s ease-in-out infinite;
+}
+
+.chatbot-loading-dot:nth-child(1) {
+    animation-delay: 0s;
+}
+
+.chatbot-loading-dot:nth-child(2) {
+    animation-delay: 0.16s;
+}
+
+.chatbot-loading-dot:nth-child(3) {
+    animation-delay: 0.32s;
+}

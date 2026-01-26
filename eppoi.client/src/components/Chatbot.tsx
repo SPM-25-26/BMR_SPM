@@ -1,14 +1,12 @@
-﻿import { useState, useCallback, useEffect } from 'react';
-import { MessageCircle, X, Send, MessageSquarePlus } from 'lucide-react';
-
-export interface ChatMessage {
-  text: string;
-  isUser: boolean;
-}
+﻿import { useState, useCallback, useEffect, useRef } from 'react';
+import { MessageCircle, X, Send, MessageSquarePlus, RefreshCw } from 'lucide-react';
+import { type ChatMessage, ApiErrorWithResponse } from '../api/apiUtils';
+import { askChatBot } from '../api/chatbotApi';
 
 interface ChatbotProps {
   isOpen: boolean;
   onClose: () => void;
+  onLogout: () => void;
 }
 
 const suggestedQuestions = [
@@ -17,17 +15,138 @@ const suggestedQuestions = [
   { emoji: '🗺️', text: 'Ci sono degli itinerari consigliati in zona?' },
 ];
 
-const botResponses = [
-  'Ecco alcuni luoghi interessanti nelle vicinanze: il Duomo di Firenze, la Galleria degli Uffizi e Palazzo Vecchio.',
-  'Ti consiglio di provare la Trattoria Mario per cibo tradizionale toscano, oppure il Mercato Centrale.',
-  'Nelle vicinanze puoi visitare il Giardino di Boboli, un bellissimo parco storico con vista sulla città.',
-];
+/**
+ * Markdown-like response text formatting
+ * Handles: ### headers, **bold**, *italic*, lists (* or -), and \n for newlines
+ */
+function formatMessageText(text: string): React.ReactNode[] {
+  const lines = text.split('\n');
+  
+  const parseInline = (content: string, keyPrefix: string): React.ReactNode[] => {
+    const parts: React.ReactNode[] = [];
+    let remaining = content;
+    let partIndex = 0;
 
-export default function Chatbot({ isOpen, onClose }: ChatbotProps) {
+    while (remaining.length > 0) {
+      // Find **bold** first
+      const boldMatch = remaining.match(/\*\*(.+?)\*\*/);
+      // Find *italic* (but not **)
+      const italicMatch = remaining.match(/(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)/);
+
+      const boldIndex = boldMatch ? remaining.indexOf(boldMatch[0]) : -1;
+      const italicIndex = italicMatch ? remaining.indexOf(italicMatch[0]) : -1;
+
+      if (boldIndex === -1 && italicIndex === -1) {
+        parts.push(<span key={`${keyPrefix}-${partIndex++}`}>{remaining}</span>);
+        break;
+      }
+
+      let matchIndex: number;
+      let matchLength: number;
+      let matchContent: string;
+      let isBold: boolean;
+
+      if (boldIndex !== -1 && (italicIndex === -1 || boldIndex <= italicIndex)) {
+        matchIndex = boldIndex;
+        matchLength = boldMatch![0].length;
+        matchContent = boldMatch![1];
+        isBold = true;
+      } else {
+        matchIndex = italicIndex;
+        matchLength = italicMatch![0].length;
+        matchContent = italicMatch![1];
+        isBold = false;
+      }
+
+      if (matchIndex > 0) {
+        parts.push(<span key={`${keyPrefix}-${partIndex++}`}>{remaining.substring(0, matchIndex)}</span>);
+      }
+
+      if (isBold) {
+        parts.push(<strong key={`${keyPrefix}-${partIndex++}`}>{matchContent}</strong>);
+      } else {
+        parts.push(<em key={`${keyPrefix}-${partIndex++}`}>{matchContent}</em>);
+      }
+
+      remaining = remaining.substring(matchIndex + matchLength);
+    }
+
+    return parts;
+  };
+
+  return lines.map((line, lineIndex) => {
+    // Empty lines
+    if (line.trim() === '') {
+      return <br key={lineIndex} />;
+    }
+
+    // Headers: ### Header
+    const headerMatch = line.match(/^(#{1,6})\s+(.+)$/);
+    if (headerMatch) {
+      const level = headerMatch[1].length;
+      const content = headerMatch[2];
+      const fontSize = level === 1 ? '1.25em' : level === 2 ? '1.1em' : '1em';
+      return (
+        <div 
+          key={lineIndex} 
+          style={{ 
+            fontWeight: 'bold', 
+            fontSize, 
+            marginTop: '0.75em', 
+            marginBottom: '0.25em' 
+          }}
+        >
+          {parseInline(content, `${lineIndex}`)}
+        </div>
+      );
+    }
+
+    // List items: * item or - item (with optional indentation)
+    const listMatch = line.match(/^(\s*)[\*\-]\s+(.+)$/);
+    if (listMatch) {
+      const indent = listMatch[1].length;
+      const content = listMatch[2];
+      const marginLeft = Math.floor(indent / 4) * 1.25; // Nested lists
+      return (
+        <div 
+          key={lineIndex} 
+          style={{ 
+            marginLeft: `${marginLeft}em`, 
+            paddingLeft: '1em',
+            textIndent: '-0.75em',
+            marginTop: '0.15em',
+            marginBottom: '0.15em'
+          }}
+        >
+          • {parseInline(content, `${lineIndex}`)}
+        </div>
+      );
+    }
+
+    // Regular text with inline formatting
+    return (
+      <span key={lineIndex}>
+        {parseInline(line, `${lineIndex}`)}
+        {lineIndex < lines.length - 1 && <br />}
+      </span>
+    );
+  });
+}
+
+export default function Chatbot({ isOpen, onClose, onLogout }: ChatbotProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [showNewConversationDialog, setShowNewConversationDialog] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const lastUserMessageRef = useRef<string>('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom when messages change or loading state changes
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, isLoading]);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -42,28 +161,62 @@ export default function Chatbot({ isOpen, onClose }: ChatbotProps) {
     };
   }, []);
 
+  const sendMessageToApi = useCallback(async (messagesToSend: ChatMessage[]) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const response = await askChatBot(messagesToSend);
+      
+      if (response.success && response.result) {
+        // Add response to messages
+        const botMessage: ChatMessage = {
+          text: response.result,
+          isUser: false
+        };
+        setMessages(prev => [...prev, botMessage]);
+      } else {
+        setError('Risposta non valida dal server.');
+      }
+    } catch (err) {
+      console.error('Errore chiamata askChatBot:', err);
+      setError('Impossibile ottenere una risposta.');
+
+      if (err instanceof ApiErrorWithResponse && err.statusCode === 401) {
+        onLogout();
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, [onLogout]);
+
   const handleSendMessage = useCallback(() => {
-    if (!input.trim()) return;
+    if (!input.trim() || isLoading) return;
 
-    setMessages(prev => [...prev, { text: input, isUser: true }]);
-
-    setTimeout(() => {
-      const randomResponse = botResponses[Math.floor(Math.random() * botResponses.length)];
-      setMessages(prev => [...prev, { text: randomResponse, isUser: false }]);
-    }, 1000);
-
+    const userMessage = input.trim();
+    lastUserMessageRef.current = userMessage;
+    const newMessages = [...messages, { text: userMessage, isUser: true }];
+    setMessages(newMessages);
     setInput('');
-  }, [input]);
+
+    sendMessageToApi(newMessages);
+  }, [input, isLoading, messages, sendMessageToApi]);
+
+  const handleRetry = useCallback(() => {
+    if (lastUserMessageRef.current && messages.length > 0) {
+      sendMessageToApi(messages);
+    }
+  }, [messages, sendMessageToApi]);
 
   const handleSuggestedQuestion = useCallback((question: string) => {
     setInput(question);
   }, []);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && !isLoading) {
       handleSendMessage();
     }
-  }, [handleSendMessage]);
+  }, [handleSendMessage, isLoading]);
 
   const handleNewConversation = useCallback(() => {
     setShowNewConversationDialog(true);
@@ -72,12 +225,15 @@ export default function Chatbot({ isOpen, onClose }: ChatbotProps) {
   const confirmNewConversation = useCallback(() => {
     setMessages([]);
     setInput('');
+    setError(null);
     setShowNewConversationDialog(false);
   }, []);
 
   const cancelNewConversation = useCallback(() => {
     setShowNewConversationDialog(false);
   }, []);
+
+  const isDisabled = isLoading || !isOnline;
 
   if (!isOpen) return null;
 
@@ -102,10 +258,10 @@ export default function Chatbot({ isOpen, onClose }: ChatbotProps) {
           <div className="flex items-center gap-2">
             <button
               onClick={handleNewConversation}
-              disabled={messages.length === 0}
+              disabled={messages.length === 0 || isLoading}
               title="Nuova conversazione"
               className={`text-white transition-colors ${
-                messages.length === 0
+                messages.length === 0 || isLoading
                   ? 'opacity-40 cursor-not-allowed'
                   : 'hover:text-[#bfdfff]'
               }`}
@@ -114,7 +270,12 @@ export default function Chatbot({ isOpen, onClose }: ChatbotProps) {
             </button>
             <button
               onClick={onClose}
-              className="text-white hover:text-[#bfdfff] transition-colors"
+              disabled={isLoading}
+              className={`text-white transition-colors ${
+                isLoading
+                  ? 'opacity-40 cursor-not-allowed'
+                  : 'hover:text-[#bfdfff]'
+              }`}
             >
               <X className="w-5 h-5 sm:w-6 sm:h-6" />
             </button>
@@ -133,7 +294,10 @@ export default function Chatbot({ isOpen, onClose }: ChatbotProps) {
                   <button
                     key={index}
                     onClick={() => handleSuggestedQuestion(question.text)}
-                    className="block w-full text-left px-3 sm:px-3 md:px-4 py-2 sm:py-2 md:py-3 bg-[#f0f7ff] text-[#0066cc] rounded-lg hover:bg-[#bfdfff] transition-colors text-[12px] sm:text-[13px] md:text-[14px] font-['Titillium_Web:Regular',sans-serif]"
+                    disabled={isLoading}
+                    className={`block w-full text-left px-3 sm:px-3 md:px-4 py-2 sm:py-2 md:py-3 bg-[#f0f7ff] text-[#0066cc] rounded-lg transition-colors text-[12px] sm:text-[13px] md:text-[14px] font-['Titillium_Web:Regular',sans-serif] ${
+                      isLoading ? 'opacity-60 cursor-not-allowed' : 'hover:bg-[#bfdfff]'
+                    }`}
                   >
                     {question.emoji} {question.text}
                   </button>
@@ -141,25 +305,60 @@ export default function Chatbot({ isOpen, onClose }: ChatbotProps) {
               </div>
             </div>
           ) : (
-            messages.map((msg, index) => (
-              <div
-                key={index}
-                className={`flex ${msg.isUser ? 'justify-end' : 'justify-start'}`}
-              >
+            <>
+              {messages.map((msg, index) => (
                 <div
-                  className={`max-w-[85%] sm:max-w-[85%] md:max-w-[80%] px-3 sm:px-3 md:px-4 py-2 sm:py-2 md:py-3 rounded-lg ${
-                    msg.isUser
-                      ? 'bg-[#0066cc] text-white'
-                      : 'bg-gray-100 text-[#004080]'
-                  }`}
+                  key={index}
+                  className={`flex ${msg.isUser ? 'justify-end' : 'justify-start'}`}
                 >
-                  <p className="text-[13px] sm:text-[13px] md:text-[14px] font-['Titillium_Web:Regular',sans-serif]">
-                    {msg.text}
-                  </p>
+                  <div
+                    className={`max-w-[85%] sm:max-w-[85%] md:max-w-[80%] px-3 sm:px-3 md:px-4 py-2 sm:py-2 md:py-3 rounded-lg ${
+                      msg.isUser
+                        ? 'bg-[#0066cc] text-white'
+                        : 'bg-gray-100 text-[#004080]'
+                    }`}
+                  >
+                    <div className="text-[13px] sm:text-[13px] md:text-[14px] font-['Titillium_Web:Regular',sans-serif]">
+                      {msg.isUser ? msg.text : formatMessageText(msg.text)}
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))
+              ))}
+              
+              {/* Loading indicator */}
+              {isLoading && (
+                <div className="flex justify-start">
+                  <div className="bg-gray-100 px-4 py-3 rounded-lg">
+                    <div className="flex items-center gap-1">
+                      <span className="chatbot-loading-dot"></span>
+                      <span className="chatbot-loading-dot"></span>
+                      <span className="chatbot-loading-dot"></span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Error message */}
+              {error && !isLoading && (
+                <div className="flex justify-start">
+                  <div className="max-w-[85%] sm:max-w-[85%] md:max-w-[80%] px-3 sm:px-3 md:px-4 py-2 sm:py-2 md:py-3 chatbot-error-bubble">
+                    <p className="text-[13px] sm:text-[13px] md:text-[14px] chatbot-error-text">
+                      {error}{' '}
+                      <button
+                        onClick={handleRetry}
+                        className="chatbot-retry-button"
+                      >
+                        <RefreshCw className="w-3 h-3" />
+                        Riprova
+                      </button>
+                    </p>
+                  </div>
+                </div>
+              )}
+            </>
           )}
+          {/* Scroll anchor */}
+          <div ref={messagesEndRef} />
         </div>
 
         {/* Input */}
@@ -171,13 +370,13 @@ export default function Chatbot({ isOpen, onClose }: ChatbotProps) {
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder={isOnline ? "Scrivi un messaggio..." : "Connessione assente..."}
-              disabled={!isOnline}
-              className={`flex-1 px-3 sm:px-3 md:px-4 py-2 sm:py-2 md:py-3 border-2 border-gray-200 rounded-lg focus:border-[#0066cc] focus:outline-none text-[13px] sm:text-[14px] font-['Titillium_Web:Regular',sans-serif] ${!isOnline ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
+              disabled={isDisabled}
+              className={`flex-1 px-3 sm:px-3 md:px-4 py-2 sm:py-2 md:py-3 border-2 border-gray-200 rounded-lg focus:border-[#0066cc] focus:outline-none text-[13px] sm:text-[14px] font-['Titillium_Web:Regular',sans-serif] ${isDisabled ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
             />
             <button
               onClick={handleSendMessage}
-              disabled={!isOnline}
-              className={`bg-[#0066cc] text-white px-3 sm:px-3 md:px-4 py-2 sm:py-2 md:py-3 rounded-lg transition-colors ${isOnline ? 'hover:bg-[#004d99]' : 'opacity-60 cursor-not-allowed'}`}
+              disabled={isDisabled}
+              className={`bg-[#0066cc] text-white px-3 sm:px-3 md:px-4 py-2 sm:py-2 md:py-3 rounded-lg transition-colors ${!isDisabled ? 'hover:bg-[#004d99]' : 'opacity-60 cursor-not-allowed'}`}
             >
               <Send className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>

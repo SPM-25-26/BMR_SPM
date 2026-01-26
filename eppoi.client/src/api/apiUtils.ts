@@ -391,3 +391,8 @@ export const convertPreferencesFromStringListToStructure = (preferencesString: s
     dietaryNeeds
   };
 };
+
+export interface ChatMessage {
+  text: string;
+  isUser: boolean;
+}
