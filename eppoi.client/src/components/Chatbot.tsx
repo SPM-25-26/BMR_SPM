@@ -1,5 +1,5 @@
 ﻿import { useState, useCallback, useEffect } from 'react';
-import { MessageCircle, X, Send } from 'lucide-react';
+import { MessageCircle, X, Send, MessageSquarePlus } from 'lucide-react';
 
 export interface ChatMessage {
   text: string;
@@ -27,6 +27,7 @@ export default function Chatbot({ isOpen, onClose }: ChatbotProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [showNewConversationDialog, setShowNewConversationDialog] = useState(false);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -44,10 +45,8 @@ export default function Chatbot({ isOpen, onClose }: ChatbotProps) {
   const handleSendMessage = useCallback(() => {
     if (!input.trim()) return;
 
-    // Aggiungi messaggio utente
     setMessages(prev => [...prev, { text: input, isUser: true }]);
 
-    // Simula risposta del bot
     setTimeout(() => {
       const randomResponse = botResponses[Math.floor(Math.random() * botResponses.length)];
       setMessages(prev => [...prev, { text: randomResponse, isUser: false }]);
@@ -65,6 +64,20 @@ export default function Chatbot({ isOpen, onClose }: ChatbotProps) {
       handleSendMessage();
     }
   }, [handleSendMessage]);
+
+  const handleNewConversation = useCallback(() => {
+    setShowNewConversationDialog(true);
+  }, []);
+
+  const confirmNewConversation = useCallback(() => {
+    setMessages([]);
+    setInput('');
+    setShowNewConversationDialog(false);
+  }, []);
+
+  const cancelNewConversation = useCallback(() => {
+    setShowNewConversationDialog(false);
+  }, []);
 
   if (!isOpen) return null;
 
@@ -86,12 +99,26 @@ export default function Chatbot({ isOpen, onClose }: ChatbotProps) {
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="text-white hover:text-[#bfdfff] transition-colors"
-          >
-            <X className="w-5 h-5 sm:w-6 sm:h-6" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleNewConversation}
+              disabled={messages.length === 0}
+              title="Nuova conversazione"
+              className={`text-white transition-colors ${
+                messages.length === 0
+                  ? 'opacity-40 cursor-not-allowed'
+                  : 'hover:text-[#bfdfff]'
+              }`}
+            >
+              <MessageSquarePlus className="w-5 h-5 sm:w-6 sm:h-6" />
+            </button>
+            <button
+              onClick={onClose}
+              className="text-white hover:text-[#bfdfff] transition-colors"
+            >
+              <X className="w-5 h-5 sm:w-6 sm:h-6" />
+            </button>
+          </div>
         </div>
 
         {/* Messages */}
@@ -157,6 +184,39 @@ export default function Chatbot({ isOpen, onClose }: ChatbotProps) {
           </div>
         </div>
       </div>
+
+      {/* Confirm new conversation dialog */}
+      {showNewConversationDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-lg shadow-2xl w-full max-w-sm p-5 sm:p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="bg-[#fff3e0] p-2 rounded-full">
+                <MessageSquarePlus className="w-5 h-5 text-[#f57c00]" />
+              </div>
+              <h4 className="text-[16px] sm:text-[18px] font-['Titillium_Web:Bold',sans-serif] text-[#004080]">
+                Nuova conversazione
+              </h4>
+            </div>
+            <p className="text-[13px] sm:text-[14px] font-['Titillium_Web:Regular',sans-serif] text-gray-600 mb-5">
+              Sei sicuro di voler iniziare una nuova conversazione? La conversazione corrente andrà persa.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={cancelNewConversation}
+                className="px-4 py-2 text-[13px] sm:text-[14px] font-['Titillium_Web:Regular',sans-serif] text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                Annulla
+              </button>
+              <button
+                onClick={confirmNewConversation}
+                className="px-4 py-2 text-[13px] sm:text-[14px] font-['Titillium_Web:Bold',sans-serif] bg-[#0066cc] text-white rounded-lg hover:bg-[#004d99] transition-colors"
+              >
+                Conferma
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
