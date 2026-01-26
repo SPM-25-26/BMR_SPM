@@ -11,7 +11,7 @@ namespace eppoi.Models
         private readonly string _key = options.Value.ApiKey;
         private readonly string _urlFileSearchStore = "https://generativelanguage.googleapis.com/v1beta/fileSearchStores";
         private readonly string _urlDataIngestion = "https://generativelanguage.googleapis.com/upload/v1beta";
-        private readonly string _urlGenerateResponse = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent";
+        private readonly string _urlGenerateResponse = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent";
 
         public async Task<string> IngestFileToGemini(string filePath)
         {
