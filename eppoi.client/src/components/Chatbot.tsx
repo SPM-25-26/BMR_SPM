@@ -1,4 +1,4 @@
-﻿import { useState, useCallback } from 'react';
+﻿import { useState, useCallback, useEffect } from 'react';
 import { MessageCircle, X, Send } from 'lucide-react';
 
 export interface ChatMessage {
@@ -12,8 +12,9 @@ interface ChatbotProps {
 }
 
 const suggestedQuestions = [
-  { emoji: '💡', text: 'Cosa posso visitare vicino a me?' },
+  { emoji: '💡', text: 'Cosa posso visitare a Cupra Marittima?' },
   { emoji: '🍝', text: 'Dove posso mangiare cibo tradizionale?' },
+  { emoji: '🗺️', text: 'Ci sono degli itinerari consigliati in zona?' },
 ];
 
 const botResponses = [
@@ -25,6 +26,20 @@ const botResponses = [
 export default function Chatbot({ isOpen, onClose }: ChatbotProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   const handleSendMessage = useCallback(() => {
     if (!input.trim()) return;
@@ -64,10 +79,10 @@ export default function Chatbot({ isOpen, onClose }: ChatbotProps) {
             </div>
             <div>
               <h3 className="text-white text-[16px] sm:text-[18px] md:text-[20px] font-['Titillium_Web:Bold',sans-serif]">
-                Assistente AI
+                Assistente turistico AI
               </h3>
-              <p className="text-[#bfdfff] text-[11px] sm:text-[12px] md:text-[14px] font-['Titillium_Web:Regular',sans-serif]">
-                Online
+              <p className={`text-[11px] sm:text-[12px] md:text-[14px] font-['Titillium_Web:Regular',sans-serif] ${isOnline ? 'text-[#bfdfff]' : 'text-[#ffd699]'}`}>
+                {isOnline ? 'Online' : 'Offline. Connettiti a Internet per parlare con me'}
               </p>
             </div>
           </div>
@@ -128,12 +143,14 @@ export default function Chatbot({ isOpen, onClose }: ChatbotProps) {
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder="Scrivi un messaggio..."
-              className="flex-1 px-3 sm:px-3 md:px-4 py-2 sm:py-2 md:py-3 border-2 border-gray-200 rounded-lg focus:border-[#0066cc] focus:outline-none text-[13px] sm:text-[14px] font-['Titillium_Web:Regular',sans-serif]"
+              placeholder={isOnline ? "Scrivi un messaggio..." : "Connessione assente..."}
+              disabled={!isOnline}
+              className={`flex-1 px-3 sm:px-3 md:px-4 py-2 sm:py-2 md:py-3 border-2 border-gray-200 rounded-lg focus:border-[#0066cc] focus:outline-none text-[13px] sm:text-[14px] font-['Titillium_Web:Regular',sans-serif] ${!isOnline ? 'bg-gray-100 cursor-not-allowed opacity-60' : ''}`}
             />
             <button
               onClick={handleSendMessage}
-              className="bg-[#0066cc] hover:bg-[#004d99] text-white px-3 sm:px-3 md:px-4 py-2 sm:py-2 md:py-3 rounded-lg transition-colors"
+              disabled={!isOnline}
+              className={`bg-[#0066cc] text-white px-3 sm:px-3 md:px-4 py-2 sm:py-2 md:py-3 rounded-lg transition-colors ${isOnline ? 'hover:bg-[#004d99]' : 'opacity-60 cursor-not-allowed'}`}
             >
               <Send className="w-4 h-4 sm:w-5 sm:h-5" />
             </button>
