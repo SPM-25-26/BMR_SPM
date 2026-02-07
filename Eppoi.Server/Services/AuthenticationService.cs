@@ -15,9 +15,9 @@ namespace eppoi.Server.Services
         private readonly UserManager<User> _userManager = userService;
         private readonly TokenService _tokenService = tokenService;
         private readonly SmtpService _smtpService = smtpService;
-
+    
         private readonly string _googleUserInfoUrl = "https://www.googleapis.com/oauth2/v3/userinfo";
-        private readonly string _facebookUserInfoUrl = "https://graph.facebook.com/debug_token";
+        private readonly string _facebookUserInfoUrl = "https://graph.facebook.com/me";
 
         public async Task<IdentityResult> CreateUser(UserDto request)
         {
@@ -131,7 +131,7 @@ namespace eppoi.Server.Services
                     break;
 
                 case "Facebook":
-                    url = $"{_facebookUserInfoUrl}?input_token={request.Token}";
+                    url = $"{_facebookUserInfoUrl}?fields=id,name,email&access_token={request.Token}";
                     break;
             }
             var check = await CheckRequest(request, url);
