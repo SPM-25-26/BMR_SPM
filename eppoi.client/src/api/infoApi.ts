@@ -76,7 +76,7 @@ export async function getDiscoverList(type: DiscoverType): Promise<DiscoverListR
 export async function getPoiDetail(id: string, category: CategoryEnum): Promise<GetPoiResponse> {
   return invokeApi(async () => {
     return await apiClient.get<GetPoiResponse>('/GetDetails?id=' + id + '&category=' + category);
-  }, 'Errore durante il recupero delle categorie');
+  }, 'Errore durante il recupero di dettaglio di un punto di interesse');
 }
 
 export async function getAllPois(): Promise<DiscoverListResponse> {

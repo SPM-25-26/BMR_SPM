@@ -4,6 +4,7 @@ import type { EnumType } from '@ncoderz/superenum';
 export const STORAGE_AUTHTOKEN_KEY = 'authToken';
 export const STORAGE_CATEGORIES_KEY = 'poisCategories';
 export const STORAGE_POIS_KEY = 'pois';
+export const STORAGE_POI_DETAILS_KEY = 'poiDetailsById';
 
 import {
   Landmark,
