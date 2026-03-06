@@ -338,7 +338,12 @@ export const convertPreferencesFromStructureToEnumList = (userPrefs: UserPrefere
   return enumValues;
 };
 
-export const convertPreferencesFromStringListToStructure = (preferencesString: string): UserPreferences => {
+export const convertPreferencesFromStringListToStructure = (preferencesString: string | number): UserPreferences => {
+  // If empty interests (social login), convert 0 to empty string
+  if (typeof (preferencesString) == 'number') {
+    preferencesString = '';
+  }
+
   const interests: string[] = [];
   const dietaryNeeds: string[] = [];
   let travelStyle: string = "solo";

@@ -10,7 +10,7 @@ interface ConfirmEmailInput {
   token: string;
 }
 
-interface GoogleLoginInput {
+interface SocialLoginInput {
   id: string;
   name: string;
   username: string;
@@ -72,8 +72,16 @@ export async function loginUser(email: string, password: string): Promise<LoginR
   }, 'Errore durante il login');    
 }
 
+export async function loginFacebook(facebookUid: string, name: string, userName: string, email: string, facebookToken: string): Promise<LoginResponse> {
+  const apiInput: SocialLoginInput = { id: facebookUid, name: name, username: userName, email: email, token: facebookToken };
+
+  return invokeApi(async () => {
+    return await apiClient.post<LoginResponse>('/FacebookLogin', apiInput);
+  }, 'Errore durante il login con Facebook');
+}
+
 export async function loginGoogle(googleUid: string, name: string, userName: string, email: string, googleToken: string): Promise<LoginResponse> {  
-  const apiInput: GoogleLoginInput = { id: googleUid, name: name, username: userName, email: email, token: googleToken };
+  const apiInput: SocialLoginInput = { id: googleUid, name: name, username: userName, email: email, token: googleToken };
 
   return invokeApi(async () => {
     return await apiClient.post<LoginResponse>('/GoogleLogin', apiInput);

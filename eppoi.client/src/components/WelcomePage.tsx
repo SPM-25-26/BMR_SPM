@@ -6,7 +6,7 @@ import LoginSocialFacebook from '@greatsumini/react-facebook-login';
 import { Loader2 } from 'lucide-react';
 import logoImage from 'figma:asset/958defa264c22f47e7a42e2e88ba5be34b61d176.png';
 import { convertPreferencesFromStringListToStructure } from '../api/apiUtils';
-import { loginGoogle } from '../api/authApi';
+import { loginFacebook, loginGoogle } from '../api/authApi';
 import ErrorModal from './ui/ErrorModal';
 import { decodeJwt } from './ui/utils';
 
@@ -57,6 +57,7 @@ export default function WelcomePage({ onLogin }: WelcomePageProps) {
   const [errorState, setErrorState] = useState<ErrorState | null>(null);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  let facebookTokenResponse: FacebookAuthResponse|null = null;
 
   const closeErrorModal = () => {
     setShowErrorModal(false);
@@ -165,25 +166,56 @@ export default function WelcomePage({ onLogin }: WelcomePageProps) {
 
   const handleFacebookAuthSuccess = async (response: FacebookAuthResponse) => {    
     // This is just the response with the auth token, the real step is on profile success
-    // TODO - IF BACKEND NEEDS ACCESS TOKEN, THIS IS THE PLACE TO GET IT
     console.log('Facebook login response (token):', response);    
+    facebookTokenResponse = response;
   };
 
   const handleFacebookProfileSuccess = async (response: FacebookUserInfo) => {
     console.log('Facebook login response (profile info):', response);
     setIsLoading(true);
 
-    try {     
-      
-      // TODO: Implement backend api call
-      
-      
-      // To remove when integrated
-      setErrorState({
-        title: 'Login Facebook',
-        message: 'Integrazione Facebook completata! Ora devi implementare la chiamata API lato server.'
-      });
+    const accessToken = facebookTokenResponse?.accessToken;
+    if (accessToken == null) {
+      const errorObj = getNonAuthErrorMessage({ type: 'unknown' });
+      setIsLoading(false);
+      setErrorState(errorObj);
       setShowErrorModal(true);      
+      return;
+    }
+
+    try {         
+
+      // Login on Eppoi system with Google data
+      const apiResponse = await loginFacebook(response.id, response.name, response.email, response.email, accessToken);
+
+      let facebookLoginSuccess = false;
+      if (apiResponse.success) {
+        const jwtPayload = decodeJwt(apiResponse.result.token);
+
+        if (jwtPayload) {
+          localStorage.setItem('authToken', apiResponse.result.token);
+
+          const preferencesInFlag = apiResponse.result.preferences;
+          const preferencesStruct = convertPreferencesFromStringListToStructure(preferencesInFlag);
+
+          facebookLoginSuccess = true;
+
+          onLogin({
+            name: jwtPayload.Name,
+            userName: jwtPayload.UserName,
+            email: response.email,
+            emailConfirmed: true
+          }, preferencesStruct);
+
+          navigate('/');
+        }
+      }
+
+      if (!facebookLoginSuccess) {
+        const errorObj = getNonAuthErrorMessage({ type: 'unknown' });
+        setErrorState(errorObj);
+        setShowErrorModal(true);
+      }      
 
     } catch (error) {
       console.error('Errore nel login Facebook:', error);
