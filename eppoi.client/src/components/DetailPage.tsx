@@ -1,9 +1,9 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, MapPin, Calendar, X, ChevronLeft as ArrowLeft, ChevronRight as ArrowRight } from 'lucide-react';
 import logoImage from 'figma:asset/958defa264c22f47e7a42e2e88ba5be34b61d176.png';
 import { getPoiDetail, type PoiItem } from '../api/infoApi';
-import { ApiErrorWithResponse, itemCategoriesToEnumValue } from '../api/apiUtils';
+import { ApiErrorWithResponse, itemCategoriesToEnumValue, STORAGE_POI_DETAILS_KEY } from '../api/apiUtils';
 import LoadingSpinner from './ui/LoadingSpinner';
 import ErrorModal from './ui/ErrorModal';
 import { getMediaUrl } from '../config/constants';
@@ -34,6 +34,15 @@ export default function DetailPage({ onLogout }: DetailPageProps) {
   };
   const dataLoadingRef = useRef(false);
 
+  const closeErrorModal = () => {
+    setShowErrorModal(false);
+    setErrorState(null);
+
+    if (!item) {
+      navigate('/');
+    }
+  };
+
   // Derive gallery images from item data
   const galleryImages = item?.gallery?.map(imagePath => getMediaUrl(imagePath)) || [];
 
@@ -55,11 +64,11 @@ export default function DetailPage({ onLogout }: DetailPageProps) {
 
   const onTouchEnd = () => {
     if (!touchStart || !touchEnd) return;
-    
+
     const distance = touchStart - touchEnd;
     const isLeftSwipe = distance > minSwipeDistance;
     const isRightSwipe = distance < -minSwipeDistance;
-    
+
     if (isLeftSwipe) {
       handleNextImage();
     }
@@ -69,13 +78,13 @@ export default function DetailPage({ onLogout }: DetailPageProps) {
   };
 
   const handlePrevImage = () => {
-    setCurrentImageIndex((prev) => 
+    setCurrentImageIndex((prev) =>
       prev === 0 ? galleryImages.length - 1 : prev - 1
     );
   };
 
   const handleNextImage = () => {
-    setCurrentImageIndex((prev) => 
+    setCurrentImageIndex((prev) =>
       prev === galleryImages.length - 1 ? 0 : prev + 1
     );
   };
@@ -90,7 +99,6 @@ export default function DetailPage({ onLogout }: DetailPageProps) {
     console.log(error);
 
     if (error instanceof ApiErrorWithResponse) {
-
       // Token expired, should login again
       if (error.statusCode === 401) {
         onLogout();
@@ -126,7 +134,35 @@ export default function DetailPage({ onLogout }: DetailPageProps) {
     }
 
     const categoryEnum = itemCategoriesToEnumValue[category as keyof typeof itemCategoriesToEnumValue];
-    
+
+    // 1) Try load from localStorage cache first
+    try {
+      const cachedMapRaw = localStorage.getItem(STORAGE_POI_DETAILS_KEY);
+      if (cachedMapRaw) {
+        const cachedMap = JSON.parse(cachedMapRaw) as Record<string, PoiItem>;
+        const cachedItem = cachedMap[id];
+        if (cachedItem) {
+          setItem(cachedItem);
+          setIsLoading(false);
+          return;
+        }
+      }
+    } catch (error) {
+      console.error('Errore nel parsing cache dettagli');
+      console.log(error);
+    }
+
+    // Offline and no cache: show modal instead of spinner
+    if (!navigator.onLine) {
+      setErrorState({
+        title: 'Connessione assente',
+        message: 'Impossibile scaricare il dettaglio. Controlla di essere connesso a Internet e riprova.'
+      });
+      setShowErrorModal(true);
+      setIsLoading(false);
+      return;
+    }
+
     // Avoid duplicate calls during re-renders
     if (dataLoadingRef.current) {
       return;
@@ -135,24 +171,38 @@ export default function DetailPage({ onLogout }: DetailPageProps) {
     setIsLoading(true);
     dataLoadingRef.current = true;
 
-    try {      
+    try {
       const response = await getPoiDetail(id, categoryEnum);
       if (response.success && response.result) {
+        setErrorState(null);
+        setShowErrorModal(false);
         setItem(response.result);
+
+        // 2) Save fetched detail into localStorage map by id
+        try {
+          const cachedMapRaw = localStorage.getItem(STORAGE_POI_DETAILS_KEY);
+          const cachedMap: Record<string, PoiItem> = cachedMapRaw
+            ? JSON.parse(cachedMapRaw)
+            : {};
+
+          cachedMap[id] = response.result;
+          localStorage.setItem(STORAGE_POI_DETAILS_KEY, JSON.stringify(cachedMap));
+        } catch (error) {
+          console.error('Errore nel salvataggio cache dettagli');
+          console.log(error);
+        }
       } else {
         setErrorState({
           title: 'Errore nel caricamento',
           message: 'Non è stato possibile caricare i dati del punto di interesse. Riprova.'
         });
         setShowErrorModal(true);
-      }      
+      }
     } catch (error) {
       showServerError(error);
     } finally {
       setIsLoading(false);
       dataLoadingRef.current = false;
-
-      
     }
   };
 
@@ -178,12 +228,35 @@ export default function DetailPage({ onLogout }: DetailPageProps) {
     textarea.innerHTML = text;
     return textarea.value;
   };
+
+  const handleRetry = async () => {
+    setShowErrorModal(false);
+    setErrorState(null);
+    // Small delay to ensure React processes the modal close before re-opening
+    await new Promise(resolve => setTimeout(resolve, 100));
+    await loadDetailData();
+  };
+
   if (isLoading) {
     return <LoadingSpinner message="Caricamento dati in corso..." />;
   }
 
   if (!item) {
-    return <LoadingSpinner message="Nessun dato disponibile..." />;
+    return (
+      <>
+        {errorState && (
+          <ErrorModal
+            isOpen={showErrorModal}
+            title={errorState.title}
+            message={errorState.message}
+            onClose={closeErrorModal}
+            onRetry={handleRetry}
+            retryLabel="Riprova"
+            cancelLabel="Chiudi"
+          />
+        )}
+      </>
+    );
   }
 
   return (
@@ -349,6 +422,18 @@ export default function DetailPage({ onLogout }: DetailPageProps) {
           </div>
         </div>
       )}
+
+      {errorState && (
+          <ErrorModal
+            isOpen={showErrorModal}
+            title={errorState.title}
+            message={errorState.message}
+            onClose={closeErrorModal}
+            onRetry={handleRetry}
+            retryLabel="Riprova"
+            cancelLabel="Chiudi"
+          />
+        )}
     </div>
   );
 }

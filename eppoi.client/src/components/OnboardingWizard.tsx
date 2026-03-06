@@ -5,7 +5,7 @@ import {
   Check  
 } from "lucide-react";
 import logoImage from "figma:asset/958defa264c22f47e7a42e2e88ba5be34b61d176.png";
-import { CATEGORY_INTERESTS, categoryToFlagMap, travelStyles, dietaryOptions } from '../api/apiUtils';
+import { STORAGE_CATEGORIES_KEY, CATEGORY_INTERESTS, categoryToFlagMap, travelStyles, dietaryOptions } from '../api/apiUtils';
 import { getCategories, type Category } from '../api/infoApi';
 import { updateUserPreferences } from '../api/optionsApi';
 import LoadingSpinner from './ui/LoadingSpinner';
@@ -143,13 +143,13 @@ export default function OnboardingWizard({
   };
 
   const loadOnboardingData = useCallback(async () => {
-    await loadData(getCategories);
+    await loadData(getCategories, { localStorageKey: STORAGE_CATEGORIES_KEY });
   }, [loadData]);
 
   const handleRetry = async () => {
     closeErrorModal();
     resetLoadingFlag();
-    await loadData(getCategories);
+    await loadData(getCategories, { localStorageKey: STORAGE_CATEGORIES_KEY });
   };
 
   const handleSaveRetry = async () => {
