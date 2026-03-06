@@ -1,13 +1,13 @@
 import { fileURLToPath, URL } from 'node:url';
 
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 import plugin from '@vitejs/plugin-react';
 import { mockDevServerPlugin } from 'vite-plugin-mock-dev-server';
 import fs from 'fs';
 import path from 'path';
 import child_process from 'child_process';
 import { env } from 'process';
-import { VitePWA } from 'vite-plugin-pwa'
+import { VitePWA } from 'vite-plugin-pwa';
 
 const baseFolder =
     env.APPDATA !== undefined && env.APPDATA !== ''
@@ -31,7 +31,7 @@ if (!fs.existsSync(certFilePath) || !fs.existsSync(keyFilePath)) {
         '--format',
         'Pem',
         '--no-password',
-    ], { stdio: 'inherit', }).status) {
+    ], { stdio: 'inherit' }).status) {
         throw new Error("Could not create certificate.");
     }
 }
@@ -134,7 +134,7 @@ export default defineConfig({
             '@radix-ui/react-accordion@1.2.3': '@radix-ui/react-accordion',
         }
     },
-  server: {
+    server: {
         proxy: {
             '^/api': {
                 target,
@@ -144,10 +144,21 @@ export default defineConfig({
                 }
             }
         },
-        port: parseInt(env.DEV_SERVER_PORT || '51720'),
+        //port: parseInt(env.DEV_SERVER_PORT || '51720'),
+        port: parseInt(env.DEV_SERVER_PORT || '51740'),
         https: {
             key: fs.readFileSync(keyFilePath),
             cert: fs.readFileSync(certFilePath),
         }
+    },
+    test: {
+        globals: true,
+        environment: 'jsdom',
+        setupFiles: './src/test/setup.ts',
+        css: true,
+        coverage: {
+            provider: 'v8',
+            reporter: ['text', 'html']
+        }
     }
-})
+});
