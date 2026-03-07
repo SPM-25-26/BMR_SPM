@@ -27,7 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Eppoi.Server\Eppoi.Server.csproj" />
+    <ProjectReference Include="..\Eppoi.Server\eppoi.Server.csproj" />
   </ItemGroup>
 
 </Project>
