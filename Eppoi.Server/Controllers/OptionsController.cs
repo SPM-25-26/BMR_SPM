@@ -1,6 +1,7 @@
 ﻿using eppoi.Models.Entities;
 using eppoi.Server.Models.Factories;
 using eppoi.Server.Services;
+using eppoi.Server.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,7 +10,7 @@ namespace eppoi.Server.Controllers
     [Route("api/[controller]")]
     [Authorize]
     [ApiController]
-    public class OptionsController(ILogger<OptionsController> _logger, OptionsService _optionsService) : ControllerBase
+    public class OptionsController(ILogger<OptionsController> _logger, IOptionsService _optionsService) : ControllerBase
     {
         [HttpPut("ChangePreferences")]
         public async Task<ActionResult> ChangePreferences(IEnumerable<Preferences> changes)

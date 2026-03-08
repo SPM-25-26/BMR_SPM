@@ -1,6 +1,7 @@
 ﻿using eppoi.Server.Models.Factories;
 using eppoi.Server.Models.Information.Enums;
 using eppoi.Server.Services;
+using eppoi.Server.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,7 +10,7 @@ namespace eppoi.Server.Controllers
     [Route("api/[controller]")]
     [Authorize]
     [ApiController]
-    public class InformationController(ILogger<InformationController> _logger, InformationService _informationService) : ControllerBase
+    public class InformationController(ILogger<InformationController> _logger, IInformationService _informationService) : ControllerBase
     {
         [HttpGet("GetCategories")]
         public async Task<ActionResult> GetCategories()
