@@ -5,11 +5,42 @@ using Microsoft.EntityFrameworkCore;
 
 namespace eppoi.Server.Services
 {
-    public class InformationService(ApplicationDBContext _context) : IInformationService
+    public class InformationService : IInformationService
     {
+        private readonly ApplicationDBContext? _context;
+        private readonly IInformationReadStore? _readStore;
+
+        public InformationService(ApplicationDBContext context)
+        {
+            _context = context;
+        }
+
+        public InformationService(IInformationReadStore readStore)
+        {
+            _readStore = readStore;
+        }
+
+        private ApplicationDBContext GetContext()
+        {
+            return _context ?? throw new InvalidOperationException(
+                "ApplicationDBContext non disponibile. Usa il costruttore con ApplicationDBContext per i metodi che richiedono EF.");
+        }
+
         public async Task<IEnumerable<CategoryDto>> GetCategories()
         {
-            return await _context.Categories.Select(category => new CategoryDto
+            if (_readStore is not null)
+            {
+                var categories = await _readStore.GetCategoriesAsync();
+                return categories.Select(category => new CategoryDto
+                {
+                    Name = category.Name,
+                    ImagePath = category.ImagePath,
+                    Label = category.Label
+                });
+            }
+
+            var context = GetContext();
+            return await context.Categories.Select(category => new CategoryDto
             {
                 Name = category.Name,
                 ImagePath = category.ImagePath,
@@ -19,7 +50,126 @@ namespace eppoi.Server.Services
 
         public async Task<IEnumerable<BaseInfoDto>> GetBaseInfo(int skip, int take)
         {
-            var result = await _context.ArtNatures.Select(x => new BaseInfoDto
+            if (skip < 0 || take <= 0)
+                return [];
+
+            if (_readStore is not null)
+            {
+                List<BaseInfoDto> result = [];
+
+                result.AddRange((await _readStore.GetArtNaturesAsync()).Select(x => new BaseInfoDto
+                {
+                    Id = x.Id,
+                    Name = x.Name,
+                    ImagePath = x.ImagePath,
+                    BadgeText = x.Type,
+                    Address = x.Address,
+                    Category = x.Category,
+                    Latitude = x.Latitude,
+                    Longitude = x.Longitude
+                }));
+
+                result.AddRange((await _readStore.GetEventsAsync()).Select(x => new BaseInfoDto
+                {
+                    Id = x.Id,
+                    Name = x.Description,
+                    ImagePath = x.ImagePath,
+                    BadgeText = x.Type,
+                    Address = x.Address,
+                    Date = x.GetDateString(),
+                    Category = "Event",
+                    Latitude = x.Latitude,
+                    Longitude = x.Longitude,
+                    Audience = x.Audience
+                }));
+
+                result.AddRange((await _readStore.GetArticlesAsync()).Select(x => new BaseInfoDto
+                {
+                    Id = x.Id,
+                    Name = x.Name,
+                    ImagePath = x.ImagePath,
+                    BadgeText = x.TimeToRead,
+                    Category = "Article"
+                }));
+
+                result.AddRange((await _readStore.GetEntertainmentsAsync()).Select(x => new BaseInfoDto
+                {
+                    Id = x.Id,
+                    Name = x.Name,
+                    ImagePath = x.ImagePath,
+                    BadgeText = x.Category,
+                    Address = x.Address,
+                    Latitude = x.Latitude,
+                    Longitude = x.Longitude,
+                    Category = "Entertainment"
+                }));
+
+                result.AddRange((await _readStore.GetOrganizationsAsync()).Select(x => new BaseInfoDto
+                {
+                    Id = x.Id,
+                    Name = x.Name,
+                    ImagePath = x.ImagePath,
+                    BadgeText = x.Type,
+                    Address = x.Address,
+                    Latitude = x.Latitude,
+                    Longitude = x.Longitude,
+                    Category = "Organization"
+                }));
+
+                result.AddRange((await _readStore.GetRestaurantsAsync()).Select(x => new BaseInfoDto
+                {
+                    Id = x.Id,
+                    Name = x.Name,
+                    ImagePath = x.ImagePath,
+                    BadgeText = x.Type,
+                    Address = x.Address,
+                    Latitude = x.Latitude,
+                    Longitude = x.Longitude,
+                    DietaryNeeds = x.DietaryNeeds,
+                    Category = "Restaurant"
+                }));
+
+                result.AddRange((await _readStore.GetRoutesAsync()).Select(x => new BaseInfoDto
+                {
+                    Id = x.Id!,
+                    Name = x.Name,
+                    ImagePath = x.ImagePath,
+                    BadgeText = x.Duration,
+                    Latitude = x.StartingPoint.Latitude,
+                    Longitude = x.StartingPoint.Longitude,
+                    Category = "Route"
+                }));
+
+                result.AddRange((await _readStore.GetShoppingsAsync()).Select(x => new BaseInfoDto
+                {
+                    Id = x.Id,
+                    Name = x.Name,
+                    ImagePath = x.ImagePath,
+                    BadgeText = x.Website,
+                    Address = x.Address,
+                    Latitude = x.Latitude,
+                    Longitude = x.Longitude,
+                    Category = "Shopping"
+                }));
+
+                result.AddRange((await _readStore.GetSleepsAsync()).Select(x => new BaseInfoDto
+                {
+                    Id = x.Id,
+                    Name = x.Name,
+                    ImagePath = x.ImagePath,
+                    BadgeText = x.Type,
+                    Address = x.Address,
+                    Latitude = x.Latitude,
+                    Longitude = x.Longitude,
+                    Category = "Sleep"
+                }));
+
+                return result.Skip(skip).Take(take);
+            }
+
+            var context = GetContext();
+
+            var dbResult = await context.ArtNatures.Select(x => new BaseInfoDto
             {
                 Id = x.Id,
                 Name = x.Name,
@@ -28,10 +178,10 @@ namespace eppoi.Server.Services
                 Address = x.Address,
                 Category = x.Category,
                 Latitude = x.Latitude,
-                Longitude = x.Longitude,
+                Longitude = x.Longitude
             }).ToListAsync();
 
-            result.AddRange(await _context.Events.Select(x => new BaseInfoDto
+            dbResult.AddRange(await context.Events.Select(x => new BaseInfoDto
             {
                 Id = x.Id,
                 Name = x.Description,
@@ -45,7 +195,7 @@ namespace eppoi.Server.Services
                 Audience = x.Audience
             }).ToListAsync());
 
-            result.AddRange(await _context.Articles.Select(x => new BaseInfoDto
+            dbResult.AddRange(await context.Articles.Select(x => new BaseInfoDto
             {
                 Id = x.Id,
                 Name = x.Name,
@@ -54,7 +204,7 @@ namespace eppoi.Server.Services
                 Category = "Article"
             }).ToListAsync());
 
-            result.AddRange(await _context.Entertainments.Select(x => new BaseInfoDto
+            dbResult.AddRange(await context.Entertainments.Select(x => new BaseInfoDto
             {
                 Id = x.Id,
                 Name = x.Name,
@@ -66,7 +216,7 @@ namespace eppoi.Server.Services
                 Category = "Entertainment"
             }).ToListAsync());
 
-            result.AddRange(await _context.Organizations.Select(x => new BaseInfoDto
+            dbResult.AddRange(await context.Organizations.Select(x => new BaseInfoDto
             {
                 Id = x.Id,
                 Name = x.Name,
@@ -78,7 +228,7 @@ namespace eppoi.Server.Services
                 Category = "Organization"
             }).ToListAsync());
 
-            result.AddRange(await _context.Restaurants.Select(x => new BaseInfoDto
+            dbResult.AddRange(await context.Restaurants.Select(x => new BaseInfoDto
             {
                 Id = x.Id,
                 Name = x.Name,
@@ -91,7 +241,7 @@ namespace eppoi.Server.Services
                 Category = "Restaurant"
             }).ToListAsync());
 
-            result.AddRange(await _context.Routes.Select(x => new BaseInfoDto
+            dbResult.AddRange(await context.Routes.Select(x => new BaseInfoDto
             {
                 Id = x.Id!,
                 Name = x.Name,
@@ -102,7 +252,7 @@ namespace eppoi.Server.Services
                 Category = "Route"
             }).ToListAsync());
 
-            result.AddRange(await _context.Shoppings.Select(x => new BaseInfoDto
+            dbResult.AddRange(await context.Shoppings.Select(x => new BaseInfoDto
             {
                 Id = x.Id,
                 Name = x.Name,
@@ -114,7 +264,7 @@ namespace eppoi.Server.Services
                 Category = "Shopping"
             }).ToListAsync());
 
-            result.AddRange(await _context.Sleeps.Select(x => new BaseInfoDto
+            dbResult.AddRange(await context.Sleeps.Select(x => new BaseInfoDto
             {
                 Id = x.Id,
                 Name = x.Name,
@@ -126,14 +276,14 @@ namespace eppoi.Server.Services
                 Category = "Sleep"
             }).ToListAsync());
 
-            return result
-                .Skip(skip)
-                .Take(take);
+            return dbResult.Skip(skip).Take(take);
         }
 
         public async Task<PoiDto?> GetPoiDetails(string id)
         {
-            var item = await _context.ArtNatures.FindAsync(id);
+            var item = _readStore is not null
+                ? await _readStore.FindArtNatureByIdAsync(id)
+                : await GetContext().ArtNatures.FindAsync(id);
 
             if (item is null)
                 return null;
@@ -158,10 +308,8 @@ namespace eppoi.Server.Services
 
         public async Task<EventDto?> GetEventDetails(string id)
         {
-            var item = await _context.Events.FindAsync(id);
-
-            if (item is null)
-                return null;
+            var item = await GetContext().Events.FindAsync(id);
+            if (item is null) return null;
 
             return new EventDto
             {
@@ -182,10 +330,8 @@ namespace eppoi.Server.Services
 
         public async Task<ArticleDto?> GetArticleDetails(string id)
         {
-            var item = await _context.Articles.FindAsync(id);
-
-            if (item is null)
-                return null;
+            var item = await GetContext().Articles.FindAsync(id);
+            if (item is null) return null;
 
             return new ArticleDto
             {
@@ -204,10 +350,8 @@ namespace eppoi.Server.Services
 
         public async Task<OrganizationDto?> GetOrganizationDetails(string id)
         {
-            var item = await _context.Organizations.FindAsync(id);
-
-            if (item is null)
-                return null;
+            var item = await GetContext().Organizations.FindAsync(id);
+            if (item is null) return null;
 
             return new OrganizationDto
             {
@@ -233,10 +377,8 @@ namespace eppoi.Server.Services
 
         public async Task<RestaurantDto?> GetRestaurantDetails(string id)
         {
-            var item = await _context.Restaurants.FindAsync(id);
-
-            if (item is null)
-                return null;
+            var item = await GetContext().Restaurants.FindAsync(id);
+            if (item is null) return null;
 
             return new RestaurantDto
             {
@@ -263,10 +405,8 @@ namespace eppoi.Server.Services
 
         public async Task<SleepDto?> GetSleepDetails(string id)
         {
-            var item = await _context.Sleeps.FindAsync(id);
-
-            if (item is null)
-                return null;
+            var item = await GetContext().Sleeps.FindAsync(id);
+            if (item is null) return null;
 
             return new SleepDto
             {
@@ -293,10 +433,8 @@ namespace eppoi.Server.Services
 
         public async Task<ShoppingDto?> GetShoppingDetails(string id)
         {
-            var item = await _context.Shoppings.FindAsync(id);
-
-            if (item is null)
-                return null;
+            var item = await GetContext().Shoppings.FindAsync(id);
+            if (item is null) return null;
 
             return new ShoppingDto
             {
@@ -320,10 +458,8 @@ namespace eppoi.Server.Services
 
         public async Task<RouteDto?> GetRouteDetails(string id)
         {
-            var item = await _context.Routes.FindAsync(id);
-
-            if (item is null)
-                return null;
+            var item = await GetContext().Routes.FindAsync(id);
+            if (item is null) return null;
 
             return new RouteDto
             {
@@ -351,10 +487,8 @@ namespace eppoi.Server.Services
 
         public async Task<EntertainmentDto?> GetEntertainmentDetails(string id)
         {
-            var item = await _context.Entertainments.FindAsync(id);
-
-            if (item is null)
-                return null;
+            var item = await GetContext().Entertainments.FindAsync(id);
+            if (item is null) return null;
 
             return new EntertainmentDto
             {
