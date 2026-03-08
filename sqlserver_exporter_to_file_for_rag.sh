@@ -1,0 +1,1 @@
+bcp "SELECT json_line FROM SPM.dbo.vw_file_search_jsonl" queryout "C:\YOURPATHTOPROJECT\BMR_SPM\ragdata.json" -c -C 65001 -T -S "(localdb)\MSSQLLocalDB" -d "SPM"
