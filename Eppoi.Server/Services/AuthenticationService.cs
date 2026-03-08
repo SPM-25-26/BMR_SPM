@@ -3,6 +3,7 @@ using eppoi.Server.Models.Authentication;
 using eppoi.Server.Models.Authentication.Dto;
 using eppoi.Server.Models.Factories;
 using eppoi.Server.Models.Responses;
+using eppoi.Server.Services.Interfaces;
 using Eppoi.Server.Services;
 using Microsoft.AspNetCore.Identity;
 using Newtonsoft.Json;
@@ -10,11 +11,11 @@ using Newtonsoft.Json;
 
 namespace eppoi.Server.Services
 {
-    public class AuthenticationService(UserManager<User> userService, TokenService tokenService, SmtpService smtpService)
+    public class AuthenticationService(UserManager<User> userService, TokenService tokenService, ISmtpService smtpService)
     {
         private readonly UserManager<User> _userManager = userService;
         private readonly TokenService _tokenService = tokenService;
-        private readonly SmtpService _smtpService = smtpService;
+        private readonly ISmtpService _smtpService = smtpService;
     
         private readonly string _googleUserInfoUrl = "https://www.googleapis.com/oauth2/v3/userinfo";
         private readonly string _facebookUserInfoUrl = "https://graph.facebook.com/me";
@@ -30,6 +31,9 @@ namespace eppoi.Server.Services
                 Name = request.Name,
                 Preferences = pref
             };
+
+            if (pref == 0)
+                return IdentityResult.Failed(new IdentityError { Description = "At least one preference must be selected." });
 
             user.PasswordHash = _userManager.PasswordHasher.HashPassword(user, request.Password);
             var result = await _userManager.CreateAsync(user, request.Password);
@@ -111,6 +115,7 @@ namespace eppoi.Server.Services
 
             return token;
         }
+
         public async Task<IdentityResult> ResetPassword(PasswordResetDto request)
         {
             var user = await _userManager.FindByIdAsync(request.UserId);

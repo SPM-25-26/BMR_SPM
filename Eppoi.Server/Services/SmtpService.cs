@@ -1,12 +1,13 @@
 ﻿using eppoi.Server.Models.Authentication;
 using eppoi.Server.Options;
+using eppoi.Server.Services.Interfaces;
 using Microsoft.Extensions.Options;
 using System.Net;
 using System.Net.Mail;
 
 namespace eppoi.Server.Services
 {
-    public class SmtpService(IOptions<SmtpOptions> options)
+    public class SmtpService(IOptions<SmtpOptions> options) : ISmtpService
     {
 
         private readonly SmtpOptions _options = options.Value;

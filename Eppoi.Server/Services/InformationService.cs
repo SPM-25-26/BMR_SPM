@@ -1,10 +1,11 @@
 ﻿using eppoi.Models.Data;
 using eppoi.Server.Models.Information.Dtos;
+using eppoi.Server.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace eppoi.Server.Services
 {
-    public class InformationService(ApplicationDBContext _context)
+    public class InformationService(ApplicationDBContext _context) : IInformationService
     {
         public async Task<IEnumerable<CategoryDto>> GetCategories()
         {

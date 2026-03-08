@@ -4,6 +4,7 @@ using eppoi.Models.Entities;
 using eppoi.Server.Models.Factories;
 using eppoi.Server.Options;
 using eppoi.Server.Services;
+using eppoi.Server.Services.Interfaces;
 using Eppoi.Server.Options;
 using Eppoi.Server.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -112,11 +113,11 @@ builder.Services
 builder.Services.Configure<TokenOption>(builder.Configuration.GetSection("Authentication:Jwt"));
 builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection("Authentication:SmtpSandbox"));
 builder.Services.Configure<GoogleGeminiOptions>(builder.Configuration.GetSection("Google"));
-builder.Services.AddScoped<SmtpService>();
+builder.Services.AddScoped<ISmtpService, SmtpService>();
 builder.Services.AddScoped<TokenService>();
-builder.Services.AddScoped<OptionsService>();
+builder.Services.AddScoped<IOptionsService, OptionsService>();
 builder.Services.AddScoped<AuthenticationService>();
-builder.Services.AddScoped<InformationService>();
+builder.Services.AddScoped<IInformationService, InformationService>();
 builder.Services.AddScoped<GeminiService>();
 
 
